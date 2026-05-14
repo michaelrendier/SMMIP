@@ -173,7 +173,8 @@ def self_adjoint_check(sigma: float, x: float, p: float,
     S: Evaluate H_hat_RB at (σ, x, p). Verify self-adjointness.
     At σ=½: E_Red = E_Blue on the critical line (balance = 0).
     Self-adjoint means the operator preserves truth across representations.
-    '1 = 1' and '1! = 1' are self-adjoint: different forms, identical truth.
+    '1 = 1' and 'A! = A' are self-adjoint: different forms, identical truth.
+    Note: A! = A is not trivial. It forces A = 1 as the unique solution.
     """
     total_red = total_blue = total_G = 0.0
     for p_ in PRIMES[:n_primes]:
