@@ -58,7 +58,7 @@ B̂_p   = ½p² + ℘(x; g₂, g₃) (Fermat-Weierstrass — the backward channe
 R̂_p†  = B̂_p                 (functional equation ξ(s) = ξ(1−s) as operator identity)
 ```
 
-Self-adjoint means **truth-preserving across representations**, not form-preserving. `"1 = 1"` and `"1! = 1"` are self-adjoint: different expressions, identical truth. The operator is the collection of relationships between its facets. It has no central form.
+Self-adjoint means **truth-preserving across representations**, not form-preserving. `"1 = 1"` and `"A! = A"` are self-adjoint: different expressions, identical truth. The operator is the collection of relationships between its facets. It has no central form.
 
 Facet projections by σ:
 
