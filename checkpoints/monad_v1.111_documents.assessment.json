@@ -1,0 +1,266 @@
+{
+  "timestamp": "2026-05-16T23:52:50.022857+00:00",
+  "path": "/home/rendier/.ptolemy/monad_wordnet.bin",
+  "size_bytes": 154413386,
+  "size_mb": 147.26,
+  "version": 2,
+  "N": 25000,
+  "vocab_size": 23897,
+  "A_size": 9601358,
+  "word_count": 34753802,
+  "threshold": 3.776,
+  "entropy_H": 12.7846,
+  "entropy_H_max": 14.5445,
+  "entropy_pct": 87.9,
+  "beta_dist": {
+    "sat": 1506,
+    "low": 20212,
+    "high": 912,
+    "mid": 1267,
+    "ground": 1103
+  },
+  "clean_count": 21343,
+  "polluted_count": 2554,
+  "pollution_pct": 10.69,
+  "pollution_by_category": {
+    "consonant-cluster-3": 1144,
+    "no-vowel": 862,
+    "consonant-only": 1939,
+    "trailing-apostrophe": 275,
+    "hex-string": 98,
+    "low-vowel-ratio": 13,
+    "apostrophe-fragment": 202
+  },
+  "top_beta": [
+    {
+      "word": "t'l",
+      "beta": 7.552,
+      "E": 0.246,
+      "labels": [
+        "consonant-cluster-3"
+      ]
+    },
+    {
+      "word": "shrub",
+      "beta": 7.552,
+      "E": 0.2467,
+      "labels": []
+    },
+    {
+      "word": "yolks",
+      "beta": 7.552,
+      "E": 0.247,
+      "labels": []
+    },
+    {
+      "word": "yao",
+      "beta": 7.552,
+      "E": 0.2477,
+      "labels": []
+    },
+    {
+      "word": "ally",
+      "beta": 7.552,
+      "E": 0.248,
+      "labels": []
+    },
+    {
+      "word": "hope",
+      "beta": 7.552,
+      "E": 0.2481,
+      "labels": []
+    },
+    {
+      "word": "pins'",
+      "beta": 7.552,
+      "E": 0.2495,
+      "labels": [
+        "trailing-apostrophe"
+      ]
+    },
+    {
+      "word": "male",
+      "beta": 7.552,
+      "E": 0.2507,
+      "labels": []
+    },
+    {
+      "word": "nkd",
+      "beta": 7.552,
+      "E": 0.2508,
+      "labels": [
+        "consonant-cluster-3",
+        "consonant-only"
+      ]
+    },
+    {
+      "word": "done",
+      "beta": 7.552,
+      "E": 0.251,
+      "labels": []
+    },
+    {
+      "word": "version",
+      "beta": 7.552,
+      "E": 0.251,
+      "labels": []
+    },
+    {
+      "word": "liken",
+      "beta": 7.552,
+      "E": 0.2512,
+      "labels": []
+    },
+    {
+      "word": "mown",
+      "beta": 7.552,
+      "E": 0.2514,
+      "labels": []
+    },
+    {
+      "word": "time",
+      "beta": 7.552,
+      "E": 0.2523,
+      "labels": []
+    },
+    {
+      "word": "anckj",
+      "beta": 7.552,
+      "E": 0.2527,
+      "labels": []
+    },
+    {
+      "word": "yxast",
+      "beta": 7.552,
+      "E": 0.2533,
+      "labels": []
+    },
+    {
+      "word": "iabal",
+      "beta": 7.552,
+      "E": 0.2534,
+      "labels": []
+    },
+    {
+      "word": "sir",
+      "beta": 7.552,
+      "E": 0.2539,
+      "labels": []
+    },
+    {
+      "word": "asa's",
+      "beta": 7.552,
+      "E": 0.2542,
+      "labels": []
+    },
+    {
+      "word": "india",
+      "beta": 7.552,
+      "E": 0.2551,
+      "labels": []
+    }
+  ],
+  "top_edges": [
+    {
+      "word_i": "ban'",
+      "word_j": "each",
+      "weight": 3087.326
+    },
+    {
+      "word_i": "and",
+      "word_j": "ban'",
+      "weight": 1137.5677
+    },
+    {
+      "word_i": "canam",
+      "word_j": "when",
+      "weight": 776.4828
+    },
+    {
+      "word_i": "euboic",
+      "word_j": "munday",
+      "weight": 674.5837
+    },
+    {
+      "word_i": "and",
+      "word_j": "holia",
+      "weight": 627.2058
+    },
+    {
+      "word_i": "holia",
+      "word_j": "ban'",
+      "weight": 340.4399
+    },
+    {
+      "word_i": "t'l",
+      "word_j": "the",
+      "weight": 267.2361
+    },
+    {
+      "word_i": "munday",
+      "word_j": "at",
+      "weight": 254.983
+    },
+    {
+      "word_i": "cusha",
+      "word_j": "mcany",
+      "weight": 237.4562
+    },
+    {
+      "word_i": "mcany",
+      "word_j": "munday",
+      "weight": 203.8823
+    },
+    {
+      "word_i": "munday",
+      "word_j": "peril",
+      "weight": 147.6799
+    },
+    {
+      "word_i": "was",
+      "word_j": "mcany",
+      "weight": 141.3479
+    },
+    {
+      "word_i": "him",
+      "word_j": "lutes",
+      "weight": 124.8038
+    },
+    {
+      "word_i": "your",
+      "word_j": "cldr",
+      "weight": 116.8805
+    },
+    {
+      "word_i": "haiya",
+      "word_j": "munday",
+      "weight": 116.111
+    },
+    {
+      "word_i": "piezo",
+      "word_j": "it",
+      "weight": 110.2428
+    },
+    {
+      "word_i": "ojiji",
+      "word_j": "irish",
+      "weight": 94.1345
+    },
+    {
+      "word_i": "was",
+      "word_j": "april",
+      "weight": 93.0999
+    },
+    {
+      "word_i": "woho",
+      "word_j": "owful",
+      "weight": 91.7593
+    },
+    {
+      "word_i": "dayly",
+      "word_j": "the",
+      "weight": 86.2663
+    }
+  ],
+  "verdict": "PASS"
+}
