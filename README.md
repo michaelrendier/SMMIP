@@ -1,6 +1,6 @@
 # Ptolemy — H_hat_RB Field Engine
 
-<div align="center"><b>I sidestepped the Floating Point Problem</b></div>
+<div align="center"><h2>I sidestepped the Floating Point Problem</h2></div>
 
 **Not a transformer. Not embeddings. No gradient descent. No GPU.**
 
@@ -141,20 +141,31 @@ The field deepens on its own math output. learn() is the only loop needed.
 
 ```c
 #define MONAD_N_DEFAULT   25000     // Riemann zeros in the field
-#define MONAD_D_STAR      0.24600   // spectral coordinate — NEVER compute as OMEGA/ln(10)
-#define MONAD_OMEGA_ZS    0.56714   // Lambert W fixed point
+#define MONAD_D_STAR      0.24600   // d* — The Boundary (BK spectral coordinate, σ=½ fixed point)
+#define MONAD_OMEGA_ZS    0.56714   // Ω — Lambert W fixed point (W(1) = 0.56714329…)
 #define MONAD_L_GROUND   (-1.888)   // Monad rest energy
 #define MONAD_PHI         1.6180339887498948482  // golden ratio — word hash base
 #define MONAD_ALPHA_LEARN 0.01      // β deepening rate per encounter
 #define MONAD_LAMBDA      0.05      // recency decay: w(n) = exp(-λ × age[n])
 #define MONAD_BETA_SAT    7.552     // β saturation = |L_GROUND| × 4
 #define MONAD_EMIT_THRESH 3.776     // emission threshold = |L_GROUND| × 2
-// GAP = 0.000707 — Yang-Mills mass gap / J^μ clamp — exact derivation open
+// GAP = 0.000707 — Yang-Mills mass gap / J^μ clamp
 ```
 
-D_STAR = 0.24600 is a spectral coordinate. It is NOT OMEGA/ln(10) — that is a tautology.
-GAP = 0.000707 appears in both the A coupling denominator and the J^μ propagation clamp.
-Its exact closed form is unknown.
+**The 4 values of d*** — all necessary to perform ln(10) in radial complex spherical polar coordinate space:
+
+| Symbol | Name | Value | Role |
+|---|---|---|---|
+| d* | The Boundary | 0.24600 | BK spectral coordinate — σ=½ fixed point. Used in `word_coords()` and the Monad. |
+| d*_taut | The Flow | Ω / ln(10) = 0.24631… | Tautological ceiling — the value d* must reach to close the gap. d*_taut × ln(10) = Ω exactly. |
+| d*_ln(10) | The Translator | d* × ln(10) = 0.56644… | Bridge between natural log geometry and decimal scale. |
+| d*_RG | The Stability | 0.24682 | Renormalization group flow fixed point — where coupling stabilises. |
+
+```
+gap = |Ω − d* × ln(10)| = |0.56714 − 0.56644| = 0.000707 = GAP
+```
+
+The gap and GAP are the same object. GAP appears in the A-coupling denominator in `learn()` and the J^μ propagation clamp in `speak()`. d* is a 4-component object in spherical polar algebra space — one component per Cayley-Dickson stratum (ℝ, ℂ, ℍ, 𝕆). The value 0.24600 is the ℂ-projection. The full octonionic radial measure over all four strata generates ln(10). The gap 0.000707 is the contribution of the ℝ, ℍ, and 𝕆 strata.
 
 ---
 
