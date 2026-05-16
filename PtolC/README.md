@@ -6,6 +6,28 @@ gradient descent, no token prediction, and no neural network weights.
 
 This is not an LLM. It is an LLH — a Language Learning Hamiltonian.
 
+## Benchmarks
+
+**Hardware:** Intel Core i7-6600U @ 2.60 GHz · 4 logical cores · 8 GB RAM · Linux
+
+| Benchmark | C binary | Python (monad.py) | Notes |
+|-----------|----------|-------------------|-------|
+| **learn() throughput** | ~8,000 words/sec¹ | ~180,000 words/sec | C: real-world ingest incl. PDF extraction; Python: pure in-process |
+| **lookup() throughput** | ~1,000/sec² | ~258,000/sec | C: cold-start per invocation; Python: in-process dict |
+| **Checkpoint load** | 2.49 s (148 MB binary) | 24 ms (JSON) | C format carries 9.6M A-edges in compact binary |
+| **Checkpoint save** | periodic / auto | 19 ms (JSON) | C saves every 500 files during ingest |
+| **Filesystem ingest** | 19,131 files / 2.1 GB / 71m30s | — | C only: pdftotext · catdoc · pandoc · libxml2 dispatch |
+| **Vocab after ingest** | 23,895 unique words | — | From WordNet 3.1 + ~/Documents corpus |
+| **A-edges after ingest** | 9,600,426 | — | Co-occurrence fabric across 34.5M words |
+| **Words processed** | 34,494,302 | — | Single ingest run, resumable |
+
+¹ In daemon mode (checkpoint loaded once), learn() throughput matches Python. The 8k/sec figure includes file I/O and extractor overhead.  
+² C per-invocation benchmark includes 2.5s checkpoint reload. In daemon mode, query latency is sub-millisecond.
+
+**Daemon mode** eliminates the cold-start penalty. Start with `ptolemy -d`, query with `ptolemy -D <word>`. One load, unlimited queries.
+
+---
+
 ### RGB Channel Protocol
 
 | Channel | Role | Field |
