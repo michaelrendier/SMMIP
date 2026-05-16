@@ -1,0 +1,10 @@
+[Unit]
+Description=Ptolemy H_hat_RB Field Engine Socket
+Documentation=man:ptolemy(1)
+
+[Socket]
+ListenStream=%h/.ptolemy/ptolemy.sock
+SocketMode=0600
+
+[Install]
+WantedBy=sockets.target

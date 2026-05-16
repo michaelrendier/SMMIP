@@ -5,7 +5,8 @@
  *   Header:  magic[4] version[4] N[4] vocab_size[4] A_size[4] wc[4] threshold[8]
  *   Beta:    N * double
  *   Age:     N * int32
- *   Vocab:   vocab_size * (idx[4] E[8] word_len[2] word[word_len])
+ *   Vocab:   vocab_size * (idx[4] wlen[2] E[8] home_stratum[1] gen_stratum[1] word[wlen])
+ *            v1 omits the two stratum bytes; loader defaults both to NS_SIGMA_TEXT.
  *   A:       A_size * (i[4] j[4] weight[8])
  */
 
@@ -93,6 +94,11 @@ int checkpoint_load(Monad *m, const char *path)
             free(m->am);
             m->am_cap = new_cap;
             m->am     = calloc(m->am_cap, sizeof(ASlot));
+            if (!m->am) {
+                fprintf(stderr, "[checkpoint] OOM: cannot allocate A matrix (%d slots)\n",
+                        m->am_cap);
+                fclose(f); return -1;
+            }
         }
     }
 
@@ -105,11 +111,16 @@ int checkpoint_load(Monad *m, const char *path)
             free(m->wm);
             m->wm_cap  = new_cap;
             m->wm      = calloc(m->wm_cap, sizeof(WMSlot));
+            if (!m->wm) {
+                fprintf(stderr, "[checkpoint] OOM: cannot allocate word map (%d slots)\n",
+                        m->wm_cap);
+                fclose(f); return -1;
+            }
             m->wm_size = 0;
         }
     }
 
-    /* Vocab entries */
+    /* Vocab entries — v1: no stratum bytes; v2: home_stratum[1] + gen_stratum[1] after E */
     for (uint32_t i = 0; i < vocab_size; i++) {
         uint32_t idx;
         uint16_t wlen;
@@ -117,6 +128,13 @@ int checkpoint_load(Monad *m, const char *path)
         if (read32(f, &idx) || read16(f, &wlen) || read64d(f, &E)) {
             fprintf(stderr, "[checkpoint] vocab entry %u read error\n", i);
             fclose(f); return -1;
+        }
+        uint8_t hs = NS_SIGMA_TEXT, gs = NS_SIGMA_TEXT;
+        if (version >= 2) {
+            if (fread(&hs, 1, 1, f) != 1 || fread(&gs, 1, 1, f) != 1) {
+                fprintf(stderr, "[checkpoint] vocab stratum read error at entry %u\n", i);
+                fclose(f); return -1;
+            }
         }
         if (wlen >= MAX_WORD_LEN) wlen = MAX_WORD_LEN - 1;
         char word[MAX_WORD_LEN];
@@ -127,8 +145,10 @@ int checkpoint_load(Monad *m, const char *path)
         word[wlen] = '\0';
 
         if ((int)idx < m->N) {
-            m->vocab[idx].E       = E;
-            m->vocab[idx].present = 1;
+            m->vocab[idx].E            = E;
+            m->vocab[idx].present      = 1;
+            m->vocab[idx].home_stratum = hs;
+            m->vocab[idx].gen_stratum  = gs;
             memcpy(m->vocab[idx].word, word, wlen);
             m->vocab[idx].word[wlen] = '\0';
             monad_wm_set(m, word, idx);
@@ -195,15 +215,19 @@ int checkpoint_save(const Monad *m, const char *path, double min_weight)
     /* Age */
     fwrite(m->age, sizeof(int), m->N, f);
 
-    /* Vocab */
+    /* Vocab — v2: idx[4] wlen[2] E[8] home_stratum[1] gen_stratum[1] word[wlen] */
     for (int i = 0; i < m->N; i++) {
         if (!m->vocab[i].present) continue;
         uint32_t idx  = (uint32_t)i;
         uint16_t wlen = (uint16_t)strlen(m->vocab[i].word);
         double   E    = m->vocab[i].E;
+        uint8_t  hs   = m->vocab[i].home_stratum;
+        uint8_t  gs   = m->vocab[i].gen_stratum;
         fwrite(&idx,  4, 1, f);
         fwrite(&wlen, 2, 1, f);
         fwrite(&E,    8, 1, f);
+        fwrite(&hs,   1, 1, f);
+        fwrite(&gs,   1, 1, f);
         fwrite(m->vocab[i].word, 1, wlen, f);
     }
 

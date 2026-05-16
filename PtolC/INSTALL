@@ -1,0 +1,115 @@
+PtolC Installation Guide
+========================
+
+Quick path (Ubuntu 22.04 / 24.04 / Mint 21+):
+
+  sudo apt install build-essential libxml2-dev
+  cd PtolC
+  make
+  make corpus          # download WordNet + build baseline checkpoint
+
+The binary is ./ptolemy.  For system-wide install:
+
+  sudo make install PREFIX=/usr/local
+
+For user-local install:
+
+  make install PREFIX=$HOME/.local
+
+Then add ~/.local/bin to PATH if not already present:
+
+  echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+  source ~/.bashrc
+
+
+OPTIONAL DEPENDENCIES
+---------------------
+
+libxml2 (HTML/XML extraction):
+  sudo apt install libxml2-dev
+  Detected automatically by pkg-config at build time.
+  Without it, .html/.htm/.xml/.svg files are ingested as plain text.
+
+pdftotext (PDF extraction):
+  sudo apt install poppler-utils
+  Without it, .pdf files are skipped.
+
+catdoc (.doc extraction):
+  sudo apt install catdoc
+  Without it, .doc files are skipped.
+
+pandoc (.docx/.odt/.rtf extraction):
+  sudo apt install pandoc
+  Without it, .docx/.odt/.rtf files are skipped.
+
+
+CMAKE BUILD
+-----------
+
+Requires cmake >= 3.16:
+
+  sudo apt install cmake
+  cmake -B build -DCMAKE_BUILD_TYPE=Release
+  cmake --build build
+  sudo cmake --install build
+
+Override install prefix:
+
+  cmake -B build -DCMAKE_INSTALL_PREFIX=$HOME/.local
+  cmake --build build
+  cmake --install build
+
+CMake auto-detects libxml2 and reports its status at configure time.
+The compile_commands.json for clangd is written to build/.
+
+
+CORPUS (BASELINE CHECKPOINT)
+-----------------------------
+
+The corpus target downloads WordNet 3.1 via NLTK and ingests all
+153,888 lemma definitions:
+
+  make corpus
+
+Requires Python 3 and pip:
+
+  sudo apt install python3 python3-pip
+  pip3 install --break-system-packages nltk
+
+The resulting checkpoint is saved to ~/.ptolemy/monad_wordnet.bin (13 MB).
+Run once.  The checkpoint persists across updates — only rebuild after
+expanding N with checkpoint_expand.
+
+
+SYSTEMD (OPTIONAL)
+------------------
+
+Install user-level socket and service units:
+
+  make install-systemd
+
+Enable the daemon:
+
+  systemctl --user enable --now ptolemy.socket
+
+The daemon auto-starts on demand when ptolemy -D is called.
+Socket path: ~/.ptolemy/ptolemy.sock
+
+
+ENVIRONMENT VARIABLES
+---------------------
+
+  PTOLEMY_HOME         Override ~/.ptolemy/ (home directory)
+  PTOLEMY_CHECKPOINT   Override checkpoint path directly
+
+
+UNINSTALL
+---------
+
+  sudo make install PREFIX=/usr/local   # find installed files
+  sudo rm /usr/local/bin/ptolemy
+  sudo rm /usr/local/share/man/man1/ptolemy.1.gz
+  sudo rm /usr/local/share/man/man5/ptolemyignore.5.gz
+
+Runtime data (checkpoint, logs) lives in ~/.ptolemy/ and is not touched
+by any install or uninstall target.

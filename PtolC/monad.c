@@ -27,6 +27,7 @@
 
 #include "ptolemy.h"
 #include "monad.h"
+#include "filter.h"
 #include "tokenizer.h"
 
 /* ── Global display/self-ref state ───────────────────────────────────────── */
@@ -219,7 +220,7 @@ int monad_wm_get(const Monad *m, const char *word, int *idx, double *E)
 
 void monad_wm_set(Monad *m, const char *word, uint32_t idx)
 {
-    if (m->wm_size * 100 >= m->wm_cap * 65) {
+    if ((int64_t)m->wm_size * 100 >= (int64_t)m->wm_cap * 65) {
         int      new_cap = m->wm_cap * 2;
         WMSlot  *new_wm  = calloc(new_cap, sizeof(WMSlot));
         uint32_t mask    = (uint32_t)(new_cap - 1);
@@ -259,7 +260,7 @@ void monad_a_add(Monad *m, int i, int j, double delta)
     uint32_t key = a_key(i, j);
     if (key == 0) return;
 
-    if (m->am_size * 100 >= m->am_cap * 65) {
+    if ((int64_t)m->am_size * 100 >= (int64_t)m->am_cap * 65) {
         int    new_cap = m->am_cap * 2;
         ASlot *new_am  = calloc(new_cap, sizeof(ASlot));
         uint32_t mask  = (uint32_t)(new_cap - 1);
@@ -357,8 +358,18 @@ void monad_learn_identity(Monad *m)
 
 /* ── learn() ─────────────────────────────────────────────────────────────── */
 
-void monad_learn(Monad *m, const char *text, int verbose)
+void monad_learn_ex(Monad *m, const char *text, int verbose, NSFiletype ft)
 {
+    /* Refuse PEM-encoded key/certificate material — never ingest key files.
+     * Covers private keys, public keys, certificates, and CSRs regardless
+     * of how the text arrived (including via -l bypassing the ingest whitelist). */
+    if (strncmp(text, "-----BEGIN ", 11) == 0) {
+        fprintf(stderr,
+            "[monad] refused: PEM-encoded key or certificate material "
+            "(-----BEGIN ... header detected)\n");
+        return;
+    }
+
     const char *p    = text;
     int         len  = strlen(text);
     char       *sbuf = malloc(len + 2);
@@ -382,6 +393,7 @@ void monad_learn(Monad *m, const char *text, int verbose)
 
         for (int t = 0; t < ntok; t++) {
             const char *word = toks[t];
+            if (!token_accept(word, ft)) { m->rejected_count++; continue; }
             int idx; double E;
             monad_wm_get(m, word, &idx, &E);
             monad_wm_set(m, word, (uint32_t)idx);
@@ -394,8 +406,10 @@ void monad_learn(Monad *m, const char *text, int verbose)
             if (!m->vocab[idx].present || E > m->vocab[idx].E) {
                 strncpy(m->vocab[idx].word, word, MAX_WORD_LEN - 1);
                 m->vocab[idx].word[MAX_WORD_LEN - 1] = '\0';
-                m->vocab[idx].E       = E;
-                m->vocab[idx].present = 1;
+                m->vocab[idx].E            = E;
+                m->vocab[idx].present      = 1;
+                m->vocab[idx].home_stratum = NS_SIGMA_TEXT;
+                m->vocab[idx].gen_stratum  = NS_SIGMA_TEXT;
             }
 
             sidx[nact] = idx; sE[nact] = E; nact++;
@@ -447,6 +461,11 @@ void monad_learn(Monad *m, const char *text, int verbose)
     }
 
     free(sbuf);
+}
+
+void monad_learn(Monad *m, const char *text, int verbose)
+{
+    monad_learn_ex(m, text, verbose, NS_FT_PROSE);
 }
 
 /* ── hear() (internal) ───────────────────────────────────────────────────── */
@@ -661,7 +680,109 @@ void monad_lookup(const Monad *m, const char *word, FILE *out)
     int    known = monad_wm_get(m, word, &idx, &E);
     double beta  = m->beta[idx];
     double gamma = (idx < m->N) ? m->zeros[idx] : 0.0;
+    uint8_t hs   = known ? m->vocab[idx].home_stratum : NS_SIGMA_TEXT;
+    uint8_t gs   = known ? m->vocab[idx].gen_stratum  : NS_SIGMA_TEXT;
     fprintf(out,
-        "  %-24s z#%-6d  γ=%-11.4f  σ=0.5  E=%.4f  β=%.6f  %s\n",
-        word, idx, gamma, E, beta, known ? "[known]" : "[new]");
+        "  %-24s z#%-6d  γ=%-11.4f  σ=0.5  E=%.4f  β=%.6f"
+        "  home=σ%u  gen=σ%u  %s\n",
+        word, idx, gamma, E, beta, hs, gs, known ? "[known]" : "[new]");
+}
+
+void monad_health(const Monad *m, FILE *out)
+{
+    /* β distribution buckets */
+    int b_ground = 0, b_low = 0, b_mid = 0, b_high = 0, b_sat = 0;
+    int vocab_count = 0;
+    double beta_sum = 0.0;
+    int pollution = 0;
+
+    for (int i = 0; i < m->N; i++) {
+        double b = m->beta[i];
+        beta_sum += b;
+        if (b < 0.1)                      b_ground++;
+        else if (b < 2.0)                 b_low++;
+        else if (b < 5.0)                 b_mid++;
+        else if (b < MONAD_BETA_SAT)      b_high++;
+        else                              b_sat++;
+
+        if (m->vocab[i].present) {
+            vocab_count++;
+            /* Pollution heuristic: tokens under 2 or over 24 chars,
+             * or containing non-ASCII bytes */
+            const char *w = m->vocab[i].word;
+            size_t wl = strlen(w);
+            if (wl < 2 || wl > 24) { pollution++; continue; }
+            for (size_t c = 0; c < wl; c++) {
+                if ((unsigned char)w[c] > 127) { pollution++; break; }
+            }
+        }
+    }
+
+    /* Field entropy H = -Σ p_i * log2(p_i), occupied zeros only */
+    double entropy = 0.0;
+    if (beta_sum > 0.0) {
+        for (int i = 0; i < m->N; i++) {
+            if (m->beta[i] < 1e-12) continue;
+            double p = m->beta[i] / beta_sum;
+            entropy -= p * log2(p);
+        }
+    }
+
+    /* Top-10 A edges by weight */
+    #define TOP_N 10
+    double  top_val[TOP_N] = {0};
+    int     top_i[TOP_N]   = {0};
+    int     top_j[TOP_N]   = {0};
+    int     top_min_pos    = 0;
+
+    for (int s = 0; s < m->am_cap; s++) {
+        if (m->am[s].key == 0) continue;
+        double v = m->am[s].val;
+        if (v > top_val[top_min_pos]) {
+            top_val[top_min_pos] = v;
+            top_i[top_min_pos]   = (int)(m->am[s].key >> 15);
+            top_j[top_min_pos]   = (int)(m->am[s].key & 0x7FFF);
+            /* find new minimum position */
+            double mn = top_val[0]; top_min_pos = 0;
+            for (int t = 1; t < TOP_N; t++)
+                if (top_val[t] < mn) { mn = top_val[t]; top_min_pos = t; }
+        }
+    }
+    /* sort top-N descending */
+    for (int a = 0; a < TOP_N - 1; a++)
+        for (int b = a + 1; b < TOP_N; b++)
+            if (top_val[b] > top_val[a]) {
+                double tv = top_val[a]; top_val[a] = top_val[b]; top_val[b] = tv;
+                int    ti = top_i[a];   top_i[a]   = top_i[b];   top_i[b]   = ti;
+                int    tj = top_j[a];   top_j[a]   = top_j[b];   top_j[b]   = tj;
+            }
+
+    double coverage = (m->N > 0) ? 100.0 * vocab_count / m->N : 0.0;
+
+    fprintf(out,
+        "\n[field health]\n"
+        "  vocab   %d / %d  (%.1f%% coverage)\n"
+        "  entropy H = %.4f bits  (max=%.4f for %d occupied zeros)\n"
+        "  β dist  ground=%-6d low=%-6d mid=%-6d high=%-6d sat=%d\n"
+        "  pollution indicators: %d tokens\n"
+        "  rejected (learn-time filter): %d tokens\n"
+        "  A edges %d  (capacity %d)\n\n"
+        "  top A edges:\n",
+        vocab_count, m->N, coverage,
+        entropy, log2(vocab_count > 0 ? (double)vocab_count : 1.0), vocab_count,
+        b_ground, b_low, b_mid, b_high, b_sat,
+        pollution,
+        m->rejected_count,
+        m->am_size, m->am_cap);
+
+    for (int t = 0; t < TOP_N; t++) {
+        if (top_val[t] < 1e-12) break;
+        const char *wi = (top_i[t] < m->N && m->vocab[top_i[t]].present)
+                         ? m->vocab[top_i[t]].word : "?";
+        const char *wj = (top_j[t] < m->N && m->vocab[top_j[t]].present)
+                         ? m->vocab[top_j[t]].word : "?";
+        fprintf(out, "    %2d. %-20s — %-20s  w=%.4f\n",
+                t + 1, wi, wj, top_val[t]);
+    }
+    fprintf(out, "\n");
 }

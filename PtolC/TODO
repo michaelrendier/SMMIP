@@ -1,0 +1,9 @@
+PtolC TODO — open work items
+See CHANGELOG.md for completed work.
+
+* Full Unicode tokenization
+  Replace ASCII-range isalpha() in tokenizer.c with a UTF-8-aware
+  codepoint walker.  Target: Hebrew (U+0590–U+05FF), Greek (U+0370–U+03FF),
+  Arabic (U+0600–U+06FF), and CJK as a future stratum.  Required for
+  native-script ingestion of multi-language corpora (Polyglot Bible,
+  Septuagint, etc.).  Python monad token_accept() to follow.

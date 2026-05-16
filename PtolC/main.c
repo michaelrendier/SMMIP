@@ -30,14 +30,45 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <pwd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "ptolemy.h"
 #include "monad.h"
 #include "checkpoint.h"
+#include "ingest.h"
+#include "daemon.h"
+#include "log.h"
 
 /* g_color and g_self_ref are defined in monad.c — set here by main() */
 
 #define PTOLEMY_VERSION "1.0.0"
+
+/* ── Ptolemy home directory ───────────────────────────────────────────────── */
+
+static char g_ptolemy_dir[4096] = {0};
+
+static void init_ptolemy_dir(void)
+{
+    const char *override = getenv("PTOLEMY_HOME");
+    if (override && override[0]) {
+        snprintf(g_ptolemy_dir, sizeof(g_ptolemy_dir), "%s", override);
+        return;
+    }
+    const char *home = getenv("HOME");
+    if (!home || !home[0]) {
+        struct passwd *pw = getpwuid(getuid());
+        if (pw && pw->pw_dir) home = pw->pw_dir;
+    }
+    if (home && home[0])
+        snprintf(g_ptolemy_dir, sizeof(g_ptolemy_dir), "%s/.ptolemy", home);
+    else
+        snprintf(g_ptolemy_dir, sizeof(g_ptolemy_dir), ".ptolemy");
+
+    /* create ~/.ptolemy/ if it does not exist */
+    mkdir(g_ptolemy_dir, 0700);
+}
 
 /* ── Arg parsing ──────────────────────────────────────────────────────────── */
 
@@ -57,8 +88,10 @@ static Arg parse_arg(const char *a)
     for (const char *p = a + 1; *p; p++) {
         switch (*p) {
             case 'v': r.v++; break;
-            case 'l': case 'h': case 's': case 'q':
+            case 'l': case 'h': case 's': case 'w':
             case 'c': case 'n': case 'V': case 'i':
+            case 'I': case 'q': case 'd': case 'D':
+            case 'F': case 'S':
                 r.primary = *p; break;
             default: break;
         }
@@ -129,14 +162,21 @@ static char *read_url(const char *url)
 static const char *find_checkpoint(const char *flag_path)
 {
     static char found[4096];
+    static char home_ckpt[4096];
+
+    if (g_ptolemy_dir[0])
+        snprintf(home_ckpt, sizeof(home_ckpt),
+                 "%s/monad_wordnet.bin", g_ptolemy_dir);
+
     const char *env_path = getenv("PTOLEMY_CHECKPOINT");
-    const char *cands[4] = {
+    const char *cands[]  = {
         flag_path,
         env_path,
+        home_ckpt[0] ? home_ckpt : NULL,
         "monad_wordnet.bin",
-        "../Callimachus/data/monad_wordnet.bin",
+        NULL
     };
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < (int)(sizeof(cands)/sizeof(cands[0])) - 1; i++) {
         if (!cands[i] || !cands[i][0]) continue;
         FILE *t = fopen(cands[i], "rb");
         if (t) {
@@ -151,7 +191,7 @@ static const char *find_checkpoint(const char *flag_path)
 
 static void print_version(void)
 {
-    printf("ptolemy %s — H_hat_RB Field Engine\n", PTOLEMY_VERSION);
+    printf("ptolemy %s — RedBlue Geometries Engine\n", PTOLEMY_VERSION);
     printf("  Riemann zeros   N=%d\n", MONAD_N_DEFAULT);
     printf("  σ = ½           Noether forcing: J(σ,E)=0 iff σ=½\n");
     printf("  β_sat = %.3f    L_ground = %.3f\n", MONAD_BETA_SAT, MONAD_L_GROUND);
@@ -165,11 +205,15 @@ static void print_version(void)
 static void print_usage(void)
 {
     fprintf(stderr,
-        "ptolemy %s — H_hat_RB Field Engine\n\n"
+        "ptolemy %s — RedBlue Geometries Engine\n\n"
         "  -l <file|url|->  learn from file, URL, or stdin\n"
+        "  -I <path>        ingest directory or file (Native Space whitelist)\n"
         "  -h <prompt>      hear → Noether response\n"
+        "  -D <query>       send query to running daemon\n"
+        "  -d               start daemon (keeps monad resident in memory)\n"
         "  -s               status  (or spontaneous speak if verbose)\n"
-        "  -q <word>        lookup: zero, σ, E, β\n"
+        "  -F               field health report\n"
+        "  -w <word>        lookup: zero, σ, E, β, home/gen stratum\n"
         "  -i / --identity  learn Ptolemy's identity text (run once)\n"
         "  -V               version\n\n"
         "Verbosity (stackable, combinable):\n"
@@ -180,9 +224,11 @@ static void print_usage(void)
         "  -lv  -hv  -sv    combined primary + verbose\n\n"
         "Other:\n"
         "  -c <path>        checkpoint path\n"
-        "  -n               no-save after -l\n\n"
-        "Checkpoint: -c → $PTOLEMY_CHECKPOINT → ./monad_wordnet.bin"
-        " → ../Callimachus/data/monad_wordnet.bin\n",
+        "  -S <path>        socket path for daemon (default: ~/.ptolemy/ptolemy.sock)\n"
+        "  -n               no-save after -l\n"
+        "  -q / --quiet     suppress terminal output\n\n"
+        "Checkpoint: -c → $PTOLEMY_CHECKPOINT → ~/.ptolemy/monad_wordnet.bin"
+        " → ./monad_wordnet.bin\n",
         PTOLEMY_VERSION);
 }
 
@@ -192,10 +238,14 @@ int main(int argc, char *argv[])
 {
     if (argc < 2) { print_usage(); return 1; }
 
-    /* ── Pre-scan: verbose level, checkpoint path, no-save ─────────────── */
-    int         verbose   = 0;
-    const char *ckpt_flag = NULL;
-    int         no_save   = 0;
+    init_ptolemy_dir();
+
+    /* ── Pre-scan: verbose level, checkpoint path, no-save, quiet ───────── */
+    int         verbose    = 0;
+    const char *ckpt_flag  = NULL;
+    const char *sock_flag  = NULL;
+    int         no_save    = 0;
+    int         quiet      = 0;
 
     for (int i = 1; i < argc; i++) {
         if (!argv[i] || argv[i][0] != '-') continue;
@@ -203,15 +253,21 @@ int main(int argc, char *argv[])
             if (verbose < 1) verbose = 1;
             continue;
         }
+        if (strcmp(argv[i], "--quiet") == 0) { quiet = 1; continue; }
         Arg a = parse_arg(argv[i]);
         if (a.v > verbose) verbose = a.v;
         if (a.primary == 'c' && i + 1 < argc) ckpt_flag = argv[++i];
+        if (a.primary == 'S' && i + 1 < argc) sock_flag  = argv[++i];
         if (a.primary == 'n') no_save = 1;
+        if (a.primary == 'q') quiet = 1;
     }
 
     /* ── Colour and self-referential mode ──────────────────────────────── */
     g_color    = (verbose >= 2) && isatty(fileno(stderr)) && isatty(fileno(stdout));
     g_self_ref = (verbose >= 3);
+
+    /* ── Logging ────────────────────────────────────────────────────────── */
+    plog_init(g_ptolemy_dir, quiet);
 
     /* ── Load monad ─────────────────────────────────────────────────────── */
     const char *ckpt_path = find_checkpoint(ckpt_flag);
@@ -221,10 +277,10 @@ int main(int argc, char *argv[])
     if (ckpt_path) {
         checkpoint_load(m, ckpt_path);
     } else {
-        fprintf(stderr,
-            "[ptolemy] no checkpoint found — ground state  σ=0\n"
-            "          run: python3 Callimachus/wordnet_init.py\n"
-            "          then: python3 Callimachus/checkpoint_export.py\n");
+        if (!quiet)
+            fprintf(stderr,
+                "[ptolemy] no checkpoint found — ground state  σ=0\n"
+                "          place monad_wordnet.bin in ~/.ptolemy/\n");
     }
 
     /* ── Process arguments in order ─────────────────────────────────────── */
@@ -283,6 +339,71 @@ int main(int argc, char *argv[])
             continue;
         }
 
+        /* -I : filesystem ingest (Native Space whitelist) ───────────────── */
+        if (a.primary == 'I' && i + 1 < argc) {
+            const char *root = argv[++i];
+            int iv = (verbose >= 1) ? verbose : a.v;
+            const char *save_to = ckpt_path ? ckpt_path
+                                : (g_ptolemy_dir[0] ? g_ptolemy_dir : NULL);
+            /* Build the save path string if we have a dir but no ckpt_flag */
+            static char ingest_ckpt[4096];
+            if (!ckpt_path && g_ptolemy_dir[0]) {
+                snprintf(ingest_ckpt, sizeof(ingest_ckpt),
+                         "%s/monad_wordnet.bin", g_ptolemy_dir);
+                save_to = ingest_ckpt;
+            }
+            int n = ingest_path(m, root, iv, save_to);
+            if (n > 0) { learned = 1; monad_status(m, stderr); }
+            continue;
+        }
+
+        /* -d : start daemon ──────────────────────────────────────────── */
+        if (a.primary == 'd') {
+            static char d_save[4096], d_pid[4096];
+            const char *sp = daemon_sock_path(sock_flag, g_ptolemy_dir);
+            const char *save_ckpt = NULL;
+            const char *pid_p     = NULL;
+            if (!no_save) {
+                if (ckpt_path) {
+                    save_ckpt = ckpt_path;
+                } else if (g_ptolemy_dir[0]) {
+                    snprintf(d_save, sizeof(d_save),
+                             "%s/monad_wordnet.bin", g_ptolemy_dir);
+                    save_ckpt = d_save;
+                } else {
+                    save_ckpt = "monad_wordnet.bin";
+                }
+            }
+            if (g_ptolemy_dir[0]) {
+                snprintf(d_pid, sizeof(d_pid),
+                         "%s/ptolemy.pid", g_ptolemy_dir);
+                pid_p = d_pid;
+            }
+            daemon_serve(m, sp, save_ckpt, pid_p, verbose);
+            monad_destroy(m);
+            plog_close();
+            return 0;
+        }
+
+        /* -D : query daemon ──────────────────────────────────────────── */
+        if (a.primary == 'D' && i + 1 < argc) {
+            const char *query = argv[++i];
+            const char *sp    = daemon_sock_path(sock_flag, g_ptolemy_dir);
+            int rc = daemon_query(query, sp);
+            monad_destroy(m);
+            plog_close();
+            return rc == 0 ? 0 : 1;
+        }
+
+        /* -F : field health ──────────────────────────────────────────── */
+        if (a.primary == 'F') {
+            monad_health(m, stdout);
+            continue;
+        }
+
+        /* -S : socket path (handled in pre-scan, skip here) ─────────── */
+        if (a.primary == 'S') { i++; continue; }
+
         /* -h : hear → speak ──────────────────────────────────────────── */
         if (a.primary == 'h' && i + 1 < argc) {
             const char *query = argv[++i];
@@ -321,11 +442,14 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        /* -q : word lookup ───────────────────────────────────────────── */
-        if (a.primary == 'q' && i + 1 < argc) {
+        /* -w : word lookup ───────────────────────────────────────────── */
+        if (a.primary == 'w' && i + 1 < argc) {
             monad_lookup(m, argv[++i], stdout);
             continue;
         }
+
+        /* -q : quiet (handled in pre-scan, skip here) ────────────────── */
+        if (a.primary == 'q') continue;
 
         /* Bare -v / -vv / -vvv with no primary: spontaneous speak */
         if (a.primary == 0 && a.v > 0) {
@@ -344,10 +468,21 @@ int main(int argc, char *argv[])
 
     /* ── Save if learned ─────────────────────────────────────────────────── */
     if (learned && !no_save) {
-        const char *save = ckpt_path ? ckpt_path : "monad_wordnet.bin";
+        static char default_save[4096];
+        const char *save;
+        if (ckpt_path) {
+            save = ckpt_path;
+        } else if (g_ptolemy_dir[0]) {
+            snprintf(default_save, sizeof(default_save),
+                     "%s/monad_wordnet.bin", g_ptolemy_dir);
+            save = default_save;
+        } else {
+            save = "monad_wordnet.bin";
+        }
         checkpoint_save(m, save, 0.0);
     }
 
     monad_destroy(m);
+    plog_close();
     return 0;
 }

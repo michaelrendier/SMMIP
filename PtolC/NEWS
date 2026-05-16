@@ -1,0 +1,35 @@
+PtolC NEWS — user-visible changes by release
+
+See CHANGELOG.md in the repository root for full detail.
+
+Version 1.112 (2026-05-16)
+  * Bug fix: ptolemy -s without -c now loads ~/.ptolemy/monad_wordnet.bin
+    correctly.  The default checkpoint search loop exited early on a NULL
+    candidate before reaching the home-directory path.
+  * Version and usage strings updated to "RedBlue Geometries Engine".
+  * PtolC/TODO added (GNU-standard open work items).
+
+Version 1.111 (2026-05-16)
+  * Learn-time token filter: per-filetype rules (prose/code/markup/doc)
+    reject numeric, UUID, hex, base64, long-caps, and overlength tokens
+    silently; count visible in -F field health report.
+  * Filesystem ingest: -I <path> walks a directory tree, dispatches
+    to pdftotext/catdoc/pandoc/libxml2 by extension, honours .ptolemyignore,
+    saves checkpoint every 500 files.
+  * Daemon mode: -d starts a resident monad over a Unix domain socket;
+    -D <query> sends a query to a running daemon.  Systemd socket
+    activation supported without libsystemd.
+  * Field health: -F prints beta distribution, field entropy, top A-edges,
+    vocabulary coverage, pollution indicators, and rejection count.
+  * Checkpoint v2: VocabEntry carries home_stratum and gen_stratum
+    (NS_SIGMA_* constants from the Dixon tower).  v1 checkpoints load
+    without modification.
+  * PEM guard: monad_learn() refuses text beginning with "-----BEGIN ".
+  * CMakeLists.txt added alongside Makefile.
+  * Man pages: ptolemy(1), ptolemyignore(5).
+  * Systemd user units: ptolemy.socket, ptolemy.service.
+  * Logging: 4-hour rotating slots in ~/.ptolemy/logs/, 30-day GC.
+
+Version 1.0 (2026-05-16)
+  * Initial release.  learn (-l), hear/speak (-h), status (-s),
+    word lookup (-w), verbosity levels, checkpoint v1, make corpus target.

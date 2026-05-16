@@ -18,14 +18,21 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "ptolemy.h"
+#include "filter.h"
 
 /* ── Data structures ──────────────────────────────────────────────────────── */
 
-/* One entry in the vocab table (one per Riemann zero). */
+/* One entry in the vocab table (one per Riemann zero).
+ * home_stratum  — Native Space stratum where the word's meaning lives.
+ * gen_stratum   — Native Space stratum where the computation that produces it lives.
+ * Both default to NS_SIGMA_TEXT (σ₁, ℂ) for natural language tokens.
+ * They can differ: e.g. a De Bruijn token has home=σ₀, gen=σ₁. */
 typedef struct {
-    char   word[MAX_WORD_LEN];
-    double E;
-    int    present;   /* 1 if this zero has been assigned a word */
+    char    word[MAX_WORD_LEN];
+    double  E;
+    int     present;        /* 1 if this zero has been assigned a word */
+    uint8_t home_stratum;   /* NS_SIGMA_* — where the result lives     */
+    uint8_t gen_stratum;    /* NS_SIGMA_* — where generation happens   */
 } VocabEntry;
 
 /* Open-addressing slot for word → zero_idx hash map. */
@@ -54,6 +61,8 @@ typedef struct {
     int       *age;            /* N recency counters */
     VocabEntry *vocab;         /* N vocab entries, indexed by zero_idx */
 
+    int    rejected_count;      /* tokens refused by learn-time filter */
+
     /* word → zero_idx map */
     WMSlot *wm;
     int     wm_cap;            /* power of 2 */
@@ -79,8 +88,13 @@ void   monad_ground_init(Monad *m);
 /* ── Core API ─────────────────────────────────────────────────────────────── */
 
 /* Deepen the β field from text.  Text is discarded after processing.
- * verbose 0=silent  1=math  2=math+colour  3=full pipeline */
+ * verbose 0=silent  1=math  2=math+colour  3=full pipeline.
+ * Uses NS_FT_PROSE token filter rules. */
 void   monad_learn(Monad *m, const char *text, int verbose);
+
+/* Extended learn with explicit filetype for token filter dispatch.
+ * filetype governs which token acceptance rules apply (see filter.h). */
+void   monad_learn_ex(Monad *m, const char *text, int verbose, NSFiletype ft);
 
 /* Return malloc'd string of top Noether-current words for query.
  * max_tokens: maximum words in response.
@@ -126,6 +140,10 @@ extern int g_self_ref;  /* verbose output loops back into learn() */
 
 /* Print status to out. */
 void   monad_status(const Monad *m, FILE *out);
+
+/* Print detailed field health report: β distribution, entropy, top A edges,
+ * vocabulary coverage, and pollution indicators. */
+void   monad_health(const Monad *m, FILE *out);
 
 /* Print per-word field info for a single surface form. */
 void   monad_lookup(const Monad *m, const char *word, FILE *out);

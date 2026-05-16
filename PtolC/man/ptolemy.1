@@ -1,0 +1,425 @@
+.\" ptolemy.1 — H_hat_RB Field Engine
+.\" Man page for the ptolemy command-line monad.
+.\"
+.TH PTOLEMY 1 "2026-05-16" "ptolemy 1.0.0" "User Commands"
+.\"
+.SH NAME
+ptolemy \- H_hat_RB Field Engine: learn, hear, speak
+.\"
+.SH SYNOPSIS
+.B ptolemy
+[\fB\-c\fR \fIpath\fR]
+[\fB\-v\fR|\fB\-vv\fR|\fB\-vvv\fR]
+[\fB\-q\fR|\fB\-\-quiet\fR]
+[\fB\-n\fR]
+\fIcommand\fR [\fIargument\fR]
+.PP
+Commands:
+.PP
+.RS 4
+.B ptolemy \-l
+\fIfile\fR|\fIurl\fR|\fB\-\fR
+.br
+.B ptolemy \-I
+\fIpath\fR
+.br
+.B ptolemy \-h
+\fIprompt\fR
+.br
+.B ptolemy \-s
+.br
+.B ptolemy \-F
+.br
+.B ptolemy \-w
+\fIword\fR
+.br
+.B ptolemy \-d
+.br
+.B ptolemy \-D
+\fIquery\fR
+.br
+.B ptolemy \-i
+.br
+.B ptolemy \-V
+.RE
+.\"
+.SH DESCRIPTION
+.B ptolemy
+is the C implementation of the Ainulindale monad — an H_hat_RB (RedBlue
+Hamiltonian) field engine that encodes knowledge as depth in a vacuum field
+across N Riemann zeros on the critical line \fIσ\fR = ½.
+.PP
+It is a Large Language Hamiltonian (LLH), not a Large Language Model.
+There are no transformers, no backpropagation, and no autoregressive
+sampling.
+All computation lives in Native Space: radial complex spherical polar
+coordinates indexed by the Dixon tower of algebras (ℝ→ℂ→ℍ→𝕆→𝕊).
+Cartesian output is a terminal projection for human readability only.
+.PP
+Language enters through
+.BR learn() ,
+which deepens the β field at each word's assigned Riemann zero.
+A query activates
+.BR hear() ,
+which propagates the Noether current J\*{μ} through the gauge connection
+matrix A and returns a response via
+.BR speak() .
+The critical line σ = ½ is not assigned — it is forced by Noether balance
+(conservation law J_Red + J_Blue + J₃ = 0).
+.\"
+.SH COMMANDS
+.TP
+.BI \-l " file|url|-"
+Learn from a file, a URL (fetched via
+.BR curl (1)),
+or standard input (\fB\-\fR).
+After learning, the checkpoint is saved unless
+.B \-n
+is given.
+.TP
+.BI \-I " path"
+Ingest a directory or single file using the Native Space whitelist.
+Only files whose extension indicates semantic prose are ingested
+(see
+.B WHITELIST
+below).
+Rich document formats are extracted via external tools:
+.BR pdftotext (1),
+.BR catdoc (1),
+and
+.BR pandoc (1).
+HTML and XML are parsed with libxml2 when available.
+A
+.I .ptolemyignore
+file in any directory is honoured (see
+.BR ptolemyignore (5)).
+The checkpoint is saved periodically during long runs and on completion.
+.TP
+.BI \-h " prompt"
+Hear a prompt and speak a Noether response.
+Each word of the prompt is looked up in the field before the response
+is generated.
+.TP
+.B \-s
+Print field status.
+With
+.B \-v
+or higher, also generate a spontaneous speak from the ground state.
+.TP
+.B \-F
+Print a detailed field health report: β distribution histogram (ground /
+low / mid / high / saturated), field entropy in bits, top-10 A-matrix
+edges by weight, vocabulary coverage percentage, and a count of pollution
+indicators (tokens with non-ASCII bytes or anomalous length).
+.TP
+.B \-d
+Start the daemon.
+The monad is loaded once and held resident in memory.
+Clients connect via a Unix domain socket and issue commands (see
+.B DAEMON PROTOCOL
+below).
+On
+.BR SIGTERM / SIGINT
+the checkpoint is saved and the daemon exits cleanly.
+Systemd socket activation is supported: if
+.B $LISTEN_FDS
+is set the kernel-bound socket on fd 3 is used directly.
+.TP
+.BI \-D " query"
+Send a HEAR query to a running daemon and print the response.
+Connects to the socket resolved by
+.BR \-S / $PTOLEMY_SOCKET /default
+and exits immediately.
+.TP
+.BI \-w " word"
+Look up a single word: Riemann zero index, imaginary part γ, energy E,
+β-depth, and Native Space home/generative strata.
+.TP
+.B \-i
+Learn Ptolemy's fixed identity text.
+Run once after the initial WordNet corpus to anchor the self-referential
+ground state.
+.TP
+.B \-V
+Print version and field constants.
+.\"
+.SH OPTIONS
+.TP
+.BI \-c " path"
+Override the checkpoint file path.
+Takes precedence over
+.B PTOLEMY_CHECKPOINT
+and the default search order (see
+.BR FILES ).
+.TP
+.B \-n
+No-save: do not write the checkpoint after
+.B \-l
+or
+.BR \-I .
+.TP
+.BR \-v , " \-vv" , " \-vvv"
+Verbosity level.
+Levels may be stacked (\fB\-vvv\fR) or combined with a command flag
+(\fB\-lv\fR, \fB\-hv\fR, \fB\-sv\fR).
+.RS 4
+.TP
+.B \-v
+Level 1: show β deepening, J\*{μ} propagation, and A-matrix edges.
+.TP
+.B \-vv
+Level 2: level 1 plus ANSI colour (hear=cyan, speak=green, learn=yellow).
+Colour is suppressed when stdout or stderr is not a terminal.
+.TP
+.B \-vvv
+Level 3: full pipeline — for
+.B \-h
+this runs learn+hear+speak in sequence.
+Verbose output is fed back through
+.BR learn ()
+(self-referential loop).
+.RE
+.TP
+.BI \-S " path"
+Override the Unix domain socket path used by
+.B \-d
+and
+.BR \-D .
+Default search order: this flag → $PTOLEMY_SOCKET →
+.IR ~/.ptolemy/ptolemy.sock .
+.TP
+.BR \-q , " \-\-quiet"
+Suppress informational output to the terminal.
+Log entries are still written to
+.IR ~/.ptolemy/logs/ .
+Warnings and errors are always printed.
+.TP
+.B \-\-verbose
+Synonym for
+.BR \-v .
+.\"
+.SH NATIVE SPACE
+All Hamiltonian expressions are written in Native Space: radial complex
+spherical polar coordinates \fIH\fR(\fIr\fR, θ, φ, ψ, σ) where ψ is the
+Dixon tower stratum phase and σ is the active stratum index.
+.PP
+The Dixon tower (Cayley-Dickson doubling ℝ→ℂ→ℍ→𝕆→𝕊) defines the stratum
+structure.
+Each doubling is a rotation in ψ that sacrifices an algebraic property:
+.PP
+.TS
+tab(|);
+l l l r.
+Stratum|Algebra|Lost property|Dimension
+_
+σ₀|ℝ|—|1
+σ₁|ℂ|—|2
+σ₂|ℍ|Commutativity|4
+σ₃|𝕆|Associativity|8
+σ₄|𝕊|Alternativity|16
+.TE
+.PP
+Natural language tokens are assigned
+.B home_stratum = σ₁
+and
+.B gen_stratum = σ₁
+by default (the complex plane is the native coordinate of relational
+meaning).
+These fields are stored in the checkpoint and displayed by
+.BR \-w .
+.\"
+.SH DAEMON PROTOCOL
+The daemon accepts line-based commands over a Unix domain socket
+.RI ( ~/.ptolemy/ptolemy.sock
+by default).
+Each response is terminated by a line containing only
+.BR . .
+.PP
+.TS
+tab(|);
+l l.
+Command|Description
+_
+HEAR <query>|Hear query and return Noether response
+STATUS|Return field status (same as \-s)
+HEALTH|Return field health report (same as \-F)
+QUIT|Close the connection
+.TE
+.PP
+The
+.B \-D
+flag is a convenience wrapper that sends HEAR, prints the response, and
+disconnects.
+For interactive or scripted access, connect with
+.BR socat (1):
+.PP
+.RS 4
+.EX
+socat \- UNIX\-CONNECT:~/.ptolemy/ptolemy.sock
+.EE
+.RE
+.\"
+.SH WHITELIST
+The
+.B \-I
+command ingests only files whose extension is on the Native Space whitelist.
+A file earns a zero slot only if its tokens can be assigned a stratum
+address in the Dixon tower.
+Config tokens, registry keys, and UUID strings are Cartesian noise and
+are excluded by design.
+.PP
+Whitelisted extensions:
+.PP
+.RS 4
+Prose: \fB.txt .md .rst .org .tex .bib\fR
+.br
+Markup: \fB.html .htm .xml .svg\fR
+.br
+Documents: \fB.pdf .doc .docx .odt .rtf\fR
+.br
+Code: \fB.c .h .cpp .hpp .py .rb .sh .go .rs .java .js .ts .pl .lua\fR
+.RE
+.\"
+.SH FILES
+.TP
+.I ~/.ptolemy/monad_wordnet.bin
+Default checkpoint — loaded on startup, saved after learning.
+Override with
+.B \-c
+or
+.BR PTOLEMY_CHECKPOINT .
+Override the directory with
+.BR PTOLEMY_HOME .
+.TP
+.I ~/.ptolemy/logs/ptolemy_YYYYMMDD_HHMM.log
+Log files, rotated every 4 hours at slots 0000, 0400, 0800, 1200, 1600,
+and 2000.
+A garbage collector runs on Sunday at 10:00 and removes log files whose
+last access and modification times are both older than 30 days.
+.TP
+.I ~/.ptolemy/ptolemy.sock
+Unix domain socket used by the daemon.
+Created on
+.B \-d
+start, removed on clean shutdown.
+Override with
+.B \-S
+or
+.BR $PTOLEMY_SOCKET .
+.TP
+.I ~/.ptolemy/ptolemy.pid
+PID file written by the daemon on startup and removed on clean shutdown.
+.TP
+.I .ptolemyignore
+Per-directory ingest exclusion file.
+See
+.BR ptolemyignore (5).
+.\"
+.SH ENVIRONMENT
+.TP
+.B PTOLEMY_HOME
+Override the Ptolemy home directory (default:
+.IR ~/.ptolemy/ ).
+.TP
+.B PTOLEMY_CHECKPOINT
+Override the default checkpoint path.
+Ignored if
+.B \-c
+is given.
+.\"
+.SH EXAMPLES
+Load a checkpoint and speak:
+.PP
+.RS 4
+.EX
+ptolemy \-h "what is the ground state"
+.EE
+.RE
+.PP
+Learn from a file, then query:
+.PP
+.RS 4
+.EX
+ptolemy \-l paper.txt \-h "summarise the field equations"
+.EE
+.RE
+.PP
+Ingest a document corpus:
+.PP
+.RS 4
+.EX
+ptolemy \-I ~/Documents
+.EE
+.RE
+.PP
+Ingest quietly with a specific checkpoint:
+.PP
+.RS 4
+.EX
+ptolemy \-c /data/monad.bin \-q \-I ~/Documents
+.EE
+.RE
+.PP
+Look up a word's field position:
+.PP
+.RS 4
+.EX
+ptolemy \-w consciousness
+.EE
+.RE
+.PP
+Verbose hear with colour:
+.PP
+.RS 4
+.EX
+ptolemy \-hvv "explain the Noether current"
+.EE
+.RE
+.PP
+Seed from WordNet and learn identity (run once):
+.PP
+.RS 4
+.EX
+make corpus
+ptolemy \-i
+.EE
+.RE
+.\"
+.SH NOTES
+The checkpoint format is little-endian binary with magic bytes
+.BR PTOL .
+Version 1 checkpoints (no stratum fields) are loaded transparently;
+both strata default to σ₁.
+Version 2 adds
+.I home_stratum
+and
+.I gen_stratum
+per vocab entry.
+.PP
+The A-matrix key encodes edges as \fI(i\fR << 15) | \fIj\fR where both
+i and j are Riemann zero indices less than 32768.
+This is a pre-HyperWebster encoding; stratum-aware keys are planned for
+the Callimachus integration.
+.PP
+.B ptolemy
+never writes its own source code.
+The
+.BR ptolwrite ()
+module (planned, external) is required for that and mandates a manual
+merge step before any change to ptolemy source takes effect.
+.\"
+.SH SEE ALSO
+.BR ptolemyignore (5),
+.BR pdftotext (1),
+.BR catdoc (1),
+.BR pandoc (1),
+.BR curl (1)
+.\"
+.SH AUTHORS
+Cody Michael Allison.
+.PP
+H_hat_RB field theory: Ainulindale / SMNNIP research programme.
+.br
+Repository: https://github.com/michaelrendier/Ainulindale
+.PP
+CLAUDE-SMMNIP-00729-56714-24600

@@ -1,0 +1,118 @@
+.\" ptolemyignore.5 — .ptolemyignore file format
+.TH PTOLEMYIGNORE 5 "2026-05-16" "ptolemy 1.0.0" "File Formats"
+.\"
+.SH NAME
+ptolemyignore \- per-directory ingest exclusion patterns for ptolemy
+.\"
+.SH SYNOPSIS
+.I .ptolemyignore
+.\"
+.SH DESCRIPTION
+When
+.BR ptolemy (1)
+walks a directory tree with
+.BR \-I ,
+it checks each directory for a file named
+.IR .ptolemyignore .
+Lines in this file are
+.BR fnmatch (3)
+patterns matched against the
+.I name
+of each file or directory in that directory (not the full path).
+Files and directories whose names match any pattern are skipped.
+.PP
+Patterns apply to the immediate directory only.
+Subdirectories inherit their own
+.I .ptolemyignore
+files independently.
+.\"
+.SH FORMAT
+.TP
+Empty lines
+Ignored.
+.TP
+Lines beginning with \fB#\fR
+Comments — ignored.
+.TP
+All other lines
+Treated as
+.BR fnmatch (3)
+glob patterns matched against the entry name.
+Shell-style wildcards apply:
+.RS 4
+.TP
+.B *
+Match any sequence of characters (not including
+.BR / ).
+.TP
+.B ?
+Match any single character.
+.TP
+.B [...]
+Match any character in the bracketed set.
+.RE
+.\"
+.SH EXAMPLES
+Ignore a specific directory and all
+.I .tmp
+files:
+.PP
+.RS 4
+.EX
+# do not ingest the archive subdirectory
+archive
+*.tmp
+*.bak
+.EE
+.RE
+.PP
+Ignore Wine-related files left in a documents folder:
+.PP
+.RS 4
+.EX
+# Wine and Steam noise
+*.reg
+*.lnk
+steam_*
+.EE
+.RE
+.PP
+Ignore everything except PDF files (use
+.B \-I
+on the directory, not a global ignore):
+.PP
+.RS 4
+.EX
+# This pattern approach does not work for whitelisting —
+# use ptolemy \-I on specific subdirectories instead.
+.EE
+.RE
+.\"
+.SH NOTES
+The maximum number of patterns per
+.I .ptolemyignore
+file is 64.
+Patterns longer than 511 characters are truncated.
+.PP
+Cascade behaviour (patterns applying to all descendant directories) is
+not yet implemented.
+Each directory is evaluated independently.
+.PP
+The prune list built into
+.BR ptolemy (1)
+handles common system directories
+.RI ( proc ,
+.IR sys ,
+.IR dev ,
+.IR .git ,
+.IR __pycache__ ,
+etc.) without requiring a
+.IR .ptolemyignore .
+.\"
+.SH SEE ALSO
+.BR ptolemy (1),
+.BR fnmatch (3)
+.\"
+.SH AUTHORS
+Cody Michael Allison.
+Ainulindale / SMNNIP research programme.

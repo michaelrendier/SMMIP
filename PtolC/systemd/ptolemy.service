@@ -1,0 +1,20 @@
+[Unit]
+Description=Ptolemy H_hat_RB Field Engine Daemon
+Documentation=man:ptolemy(1)
+Requires=ptolemy.socket
+After=ptolemy.socket
+
+[Service]
+Type=simple
+# The checkpoint is loaded once and held in memory.
+# Socket is inherited from ptolemy.socket (LISTEN_FDS=1, fd 3).
+ExecStart=%h/.local/bin/ptolemy -d
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=on-failure
+RestartSec=5
+
+# Allow ptolemy to create ~/.ptolemy/logs/ and write checkpoints
+ReadWritePaths=%h/.ptolemy
+
+[Install]
+WantedBy=default.target

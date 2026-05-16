@@ -129,13 +129,19 @@ class SemanticZero:
 def hyperindex(word: str, zeros: List[float]) -> SemanticZero:
     """
     H: word → SemanticZero.
-    Pipeline: Horner → (x₀,p₀) → H=xp → E → γ (nearest zero) → σ=½.
+    Pipeline: Horner → seed ∈ [0,1] → idx = int(seed·N) → γ = zeros[idx] → σ=½.
+    seed indexes the FULL zero basis — words distribute uniformly across all N zeros.
     The prime preexists the alphabet.
     """
-    x0, p0, t = _hyperindex_ic(word)
-    E     = x0 * p0                                     # conserved under x(t)=x₀eᵗ
-    gamma = min(zeros, key=lambda g: abs(g - E * 50))   # map E → nearest zero
-    sigma = _noether_sigma(E)                           # Noether balance → σ=½
+    n     = _horner(word)
+    seed  = (n * PHI) % 1.0
+    x0    = 1.0 + seed * PHI
+    E     = D_STAR + seed * (OMEGA_ZS - D_STAR)
+    p0    = E / x0
+    N     = len(zeros)
+    idx   = min(int(seed * N), N - 1)
+    gamma = zeros[idx]
+    sigma = _noether_sigma(E)
     return SemanticZero(surface=word, gamma=gamma,
                         sigma=sigma, E=E, x0=x0, p0=p0)
 
@@ -328,6 +334,19 @@ class LSHS:
     def learn(self, text: str) -> None:
         """Alias for L."""
         self.L(text)
+
+    def hear(self, text: str) -> List[Tuple[int, float]]:
+        """
+        text → Ψ field activations [(zero_idx, E), ...]
+        No β update. Pure sensory projection onto the zero basis.
+        """
+        result = []
+        for token in text.split():
+            surface = re.sub(r"[^\w']", '', token).lower()
+            if surface:
+                sz = self.H(surface)
+                result.append((self._idx(sz.gamma), sz.E))
+        return result
 
     # ── S (Self-Adjoint) ──────────────────────────────────────────────────────
 

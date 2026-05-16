@@ -32,7 +32,20 @@
 
 /* Binary checkpoint magic and version */
 #define CKPT_MAGIC           "PTOL"
-#define CKPT_VERSION         1
+#define CKPT_VERSION         2   /* v2: VocabEntry carries home_stratum + gen_stratum */
+
+/* Native Space — Dixon tower strata (Cayley-Dickson doubling: ℝ→ℂ→ℍ→𝕆→𝕊).
+ * All Hamiltonian expressions live in Native Space (radial complex spherical
+ * polar coordinates).  Cartesian output is a terminal projection only. */
+#define NS_SIGMA_R           0   /* σ₀  ℝ   — real, enumerable          */
+#define NS_SIGMA_C           1   /* σ₁  ℂ   — complex, relational        */
+#define NS_SIGMA_H           2   /* σ₂  ℍ   — quaternion, non-commuting  */
+#define NS_SIGMA_O           3   /* σ₃  𝕆   — octonion, non-associating  */
+#define NS_SIGMA_S           4   /* σ₄  𝕊   — sedenion, non-alternative  */
+
+/* Default stratum for natural language tokens learned from prose text.
+ * Language is relational → complex plane → σ₁. */
+#define NS_SIGMA_TEXT        NS_SIGMA_C
 
 /* ANSI colour codes — used when stderr/stdout is a tty */
 #define C_RESET    "\033[0m"
