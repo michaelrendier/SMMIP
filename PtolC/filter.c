@@ -24,6 +24,7 @@ static const FTRules FILETYPE_RULES[] = {
     { NS_FT_CODE,     40,  0,    0,    1,    1,    0,   0  },
     { NS_FT_MARKUP,   24,  0,    0,    0,    0,    16,  1  },
     { NS_FT_DOC,      24,  0,    0,    0,    0,    16,  1  },
+    { NS_FT_WORDNET,  24,  0,    0,    0,    0,    16,  1  },
 };
 #define N_FT_RULES ((int)(sizeof(FILETYPE_RULES)/sizeof(FILETYPE_RULES[0])))
 
@@ -66,11 +67,12 @@ NSFiletype filetype_from_ext(const char *path)
 const char *filetype_name(NSFiletype ft)
 {
     switch (ft) {
-        case NS_FT_PROSE:  return "prose";
-        case NS_FT_CODE:   return "code";
-        case NS_FT_MARKUP: return "markup";
-        case NS_FT_DOC:    return "doc";
-        default:           return "prose";
+        case NS_FT_PROSE:   return "prose";
+        case NS_FT_CODE:    return "code";
+        case NS_FT_MARKUP:  return "markup";
+        case NS_FT_DOC:     return "doc";
+        case NS_FT_WORDNET: return "wordnet";
+        default:            return "prose";
     }
 }
 

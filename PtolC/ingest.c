@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <ctype.h>
 #include <errno.h>
 #include <fnmatch.h>
 #include <strings.h>
@@ -375,6 +376,70 @@ static char *extract(const char *path)
     return slurp(path, NULL);   /* plain text fallback */
 }
 
+/* ── Dynamic content sniffer ──────────────────────────────────────────────── *
+ * Samples the first 8 KB / 100 lines of extracted text to decide whether the
+ * file is worth learning from and what filter strength to apply.
+ *
+ * Returns:
+ *   -1              skip entirely  (host blacklist, pure domain list, binary)
+ *   NS_FT_CODE (1)  use code filter (high symbol density)
+ *   NS_FT_PROSE(0)  override extension default with prose filter
+ *   -2              use extension-based filetype (no override)               */
+static int content_sniff(const char *text, size_t len)
+{
+    if (!text || len < 4) return -1;
+
+    size_t sample    = len < 8192 ? len : 8192;
+    int    lines     = 0;
+    int    ip_lines  = 0;   /* "0.0.0.0 host" or "127.0.0.1 host" format    */
+    int    short_ln  = 0;   /* lines with ≤ 2 whitespace-separated tokens    */
+    size_t alpha_ch  = 0;   /* alphabetic characters                         */
+    size_t nonws_ch  = 0;   /* non-whitespace characters                     */
+
+    const char *p   = text;
+    const char *end = text + sample;
+
+    while (p < end && lines < 100) {
+        const char *nl  = memchr(p, '\n', (size_t)(end - p));
+        const char *le  = nl ? nl : end;
+
+        /* IP-address host-file detection: line starts with d+.d+.d+.d+ */
+        if (le - p > 7) {
+            int a, b, c, d; char ch;
+            if (sscanf(p, "%d.%d.%d.%d%c", &a, &b, &c, &d, &ch) >= 4 &&
+                (unsigned)a < 256 && (unsigned)b < 256)
+                ip_lines++;
+        }
+
+        /* Per-character stats + word count */
+        int words = 0, in_tok = 0;
+        for (const char *q = p; q < le; q++) {
+            unsigned char uc = (unsigned char)*q;
+            if (isspace(uc)) { in_tok = 0; }
+            else { if (!in_tok) { in_tok = 1; words++; } nonws_ch++; }
+            if (isalpha(uc)) alpha_ch++;
+        }
+        if (words <= 2) short_ln++;
+        lines++;
+        p = nl ? nl + 1 : end;
+    }
+
+    if (lines == 0) return -1;
+
+    /* Host-file check: > 15% of lines are IP-prefixed → skip */
+    if (ip_lines * 100 > lines * 15) return -1;
+
+    /* Pure-list check: > 80% of lines are ≤ 2 tokens → skip
+     * (catches bare domain lists, CSV ID columns, word lists) */
+    if (short_ln * 100 > lines * 80) return -1;
+
+    /* Symbol-heavy check: < 40% alpha → treat as code (strict filter) */
+    double alpha_r = nonws_ch > 0 ? (double)alpha_ch / (double)nonws_ch : 0.0;
+    if (alpha_r < 0.40) return NS_FT_CODE;
+
+    return -2; /* use extension-based filetype */
+}
+
 /* ── Recursive walker ─────────────────────────────────────────────────────── */
 
 static void walk_dir(const char *path, WalkState *ws)
@@ -416,8 +481,15 @@ static void walk_dir(const char *path, WalkState *ws)
 
             char *text = extract(full);
             if (text) {
+                int sniff = content_sniff(text, strlen(text));
+                if (sniff == -1) {
+                    plog(PLOG_INFO, "skip (list/noise) %s", full);
+                    free(text); ws->files_skipped++; free(full); continue;
+                }
+                NSFiletype ft = (sniff >= 0) ? (NSFiletype)sniff
+                                             : filetype_from_ext(full);
                 plog(PLOG_INFO, "ingest %s  (%zu bytes)", full, strlen(text));
-                monad_learn_ex(ws->m, text, ws->verbose, filetype_from_ext(full));
+                monad_learn_ex(ws->m, text, ws->verbose, ft);
                 monad_self_flush(ws->m);
                 free(text);
                 ws->files_done++;

@@ -23,11 +23,12 @@
 /* ── Filetype registry ────────────────────────────────────────────────────── */
 
 typedef enum {
-    NS_FT_PROSE  = 0,  /* plain text, markdown, RST, LaTeX, BibTeX */
-    NS_FT_CODE   = 1,  /* source code — identifiers + comments     */
-    NS_FT_MARKUP = 2,  /* HTML/XML text nodes (post-extraction)     */
-    NS_FT_DOC    = 3,  /* PDF/DOCX/ODT/RTF prose output            */
-    NS_FT_AUTO   = -1  /* fall back to NS_FT_PROSE rules           */
+    NS_FT_PROSE   = 0,  /* plain text, markdown, RST, LaTeX, BibTeX */
+    NS_FT_CODE    = 1,  /* source code — identifiers + comments     */
+    NS_FT_MARKUP  = 2,  /* HTML/XML text nodes (post-extraction)     */
+    NS_FT_DOC     = 3,  /* PDF/DOCX/ODT/RTF prose output            */
+    NS_FT_WORDNET = 4,  /* WordNet/dictionary corpus — canonical English */
+    NS_FT_AUTO    = -1  /* fall back to NS_FT_PROSE rules           */
 } NSFiletype;
 
 /* Per-filetype acceptance rules — one row per filetype in FILETYPE_RULES. */

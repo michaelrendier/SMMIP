@@ -21,6 +21,29 @@
 #define MONAD_LAMBDA         0.05
 #define MONAD_TAU            5.0
 
+/* Spectral neighbourhood spread — how far J diffuses along the zero spectrum.
+ * RADIUS zeros on each side of the activated zero receive decayed J.
+ * Weight at distance d = exp(-DECAY * d):  d=1 → 0.37,  d=2 → 0.14,  d=3 → 0.05 */
+#define MONAD_SPREAD_RADIUS  3
+#define MONAD_SPREAD_DECAY   1.0
+
+/* Yang-Mills mass gap regulator.
+ * GAP = |Ω − d* × ln(10)| = |0.56714 − 0.24600 × 2.30259| = 0.000707 ≈ 1/(1000√2)
+ * Used as the floor in Coulomb coupling to prevent divergence when two words
+ * share the same or adjacent zero, and to clamp J propagation in speak(). */
+#define MONAD_GAP  0.000707
+
+/* Co-occurrence window for A-edge creation.
+ * Edges are created only between words within WINDOW_MAX token positions of
+ * each other in the text stream.  The text distance d = j - i enters the
+ * coupling formula directly, creating a 2D Coulomb law:
+ *   w = Eᵢ × Eⱼ / ((|γᵢ − γⱼ| + GAP) × d)
+ * Words close in BOTH zero-space and text-space get the strongest A-edges.
+ * Window size 7–12 is the stable attractor cusp: below 7 is too local
+ * (no cross-sentence reach), above 12 dissolves into noise. */
+#define MONAD_WINDOW_MIN  7
+#define MONAD_WINDOW_MAX  12
+
 /* β_sat = |L_GROUND| * 4 */
 #define MONAD_BETA_SAT       7.552
 
@@ -32,7 +55,7 @@
 
 /* Binary checkpoint magic and version */
 #define CKPT_MAGIC           "PTOL"
-#define CKPT_VERSION         2   /* v2: VocabEntry carries home_stratum + gen_stratum */
+#define CKPT_VERSION         3   /* v3: VocabEntry adds prose_seen flag */
 
 /* Native Space — Dixon tower strata (Cayley-Dickson doubling: ℝ→ℂ→ℍ→𝕆→𝕊).
  * All Hamiltonian expressions live in Native Space (radial complex spherical

@@ -14,15 +14,17 @@ This is not an LLM. It is an LLH — a Language Learning Hamiltonian.
 |-----------|----------|-------------------|-------|
 | **learn() throughput** | ~8,000 words/sec¹ | ~180,000 words/sec | C: real-world ingest incl. PDF extraction; Python: pure in-process |
 | **lookup() throughput** | ~1,000/sec² | ~258,000/sec | C: cold-start per invocation; Python: in-process dict |
-| **Checkpoint load** | 2.49 s (148 MB binary) | 24 ms (JSON) | C format carries 9.6M A-edges in compact binary |
+| **Checkpoint load** | 2.49 s (148 MB binary) | 24 ms (JSON) | C format carries 6.8M A-edges in compact binary |
 | **Checkpoint save** | periodic / auto | 19 ms (JSON) | C saves every 500 files during ingest |
-| **Filesystem ingest** | 19,131 files / 2.1 GB / 71m30s | — | C only: pdftotext · catdoc · pandoc · libxml2 dispatch |
-| **Vocab after ingest** | 23,895 unique words | — | From WordNet 3.1 + ~/Documents corpus |
-| **A-edges after ingest** | 9,600,426 | — | Co-occurrence fabric across 34.5M words |
-| **Words processed** | 34,494,302 | — | Single ingest run, resumable |
+| **Filesystem ingest** | 22,905 files / ~2.4 GB | — | C only: pdftotext · catdoc · pandoc · libxml2 dispatch |
+| **Vocab after full ingest** | 24,485 unique words | — | WordNet 3.1 + ~/Documents + thesearecool corpus |
+| **A-edges after ingest** | 6,825,748 | — | Co-occurrence fabric across 121.9M words |
+| **Words processed** | 121,914,388 | — | WordNet + Documents + thesearecool, resumable |
 
 ¹ In daemon mode (checkpoint loaded once), learn() throughput matches Python. The 8k/sec figure includes file I/O and extractor overhead.  
 ² C per-invocation benchmark includes 2.5s checkpoint reload. In daemon mode, query latency is sub-millisecond.
+
+Full corpus inventory (every file ingested, per-project breakdown): [docs/corpus-inventory.md](docs/corpus-inventory.md)
 
 **Daemon mode** eliminates the cold-start penalty. Start with `ptolemy -d`, query with `ptolemy -D <word>`. One load, unlimited queries.
 

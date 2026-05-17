@@ -33,6 +33,7 @@ typedef struct {
     int     present;        /* 1 if this zero has been assigned a word */
     uint8_t home_stratum;   /* NS_SIGMA_* — where the result lives     */
     uint8_t gen_stratum;    /* NS_SIGMA_* — where generation happens   */
+    uint8_t prose_seen;     /* 1 if learned from prose context (not code/noise) */
 } VocabEntry;
 
 /* Open-addressing slot for word → zero_idx hash map. */

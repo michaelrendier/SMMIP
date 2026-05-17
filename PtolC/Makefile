@@ -30,16 +30,21 @@ corpus: $(TARGET)
 	@python3 -m nltk.downloader -q wordnet 2>/dev/null || \
 	    (pip install --quiet nltk && python3 -m nltk.downloader -q wordnet)
 	@echo "[corpus] extracting lemmas + definitions (313K lines)…"
-	@python3 tools/dump_wordnet.py | ./$(TARGET) -i -l -
+	@python3 tools/dump_wordnet.py | ./$(TARGET) -i -L -
 	@echo "[corpus] done → monad_wordnet.bin"
 
-# ── Grammar: ingest function-word lexicon after corpus ──────────────────────
+# ── Grammar: ingest function-word lexicon + install for auto-reanchor ───────
 # Ingest order: make corpus → make grammar → ptolemy -I ~/Documents
+# Installs corpus to ~/.ptolemy/english_grammar.txt so -I auto-reanchors.
 # Usage: make grammar
+PTOLEMY_HOME ?= $(HOME)/.ptolemy
 grammar: $(TARGET)
 	@echo "[grammar] ingesting English function-word lexicon…"
 	@./$(TARGET) -l corpora/english_grammar.txt
-	@echo "[grammar] done — vocabulary seeded with grammatical structure"
+	@mkdir -p $(PTOLEMY_HOME)
+	@cp corpora/english_grammar.txt $(PTOLEMY_HOME)/english_grammar.txt
+	@echo "[grammar] installed → $(PTOLEMY_HOME)/english_grammar.txt"
+	@echo "[grammar] done — auto-reanchor after -I is now active"
 
 # ── Full: binary + corpus in one step ───────────────────────────────────────
 full: $(TARGET) corpus

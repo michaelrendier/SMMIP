@@ -356,6 +356,31 @@ void monad_learn_identity(Monad *m)
             vocab_count, m->am_size);
 }
 
+/* ── Dirac phase helpers ──────────────────────────────────────────────────── *
+ * The heartbeat waveform has 4 components across 2 stages:
+ *   Phase 1  sin<0, cos<0  Reverse Emerger — vacuum, the question
+ *   Phase 2  sin<0, cos>0  transition from vacuum
+ *   Phase 3  sin>0, cos>0  Emerger — emission, the spoken word
+ *   Phase 4  sin>0, cos<0  trailing — past peak, context
+ *
+ * dirac_phase()  returns 1-4 for zero at γ.
+ * dirac_pole()   returns +1 for Phases 1,3 (standing-wave poles)
+ *                        -1 for Phases 2,4 (transitions).              */
+
+static int dirac_phase(double gam)
+{
+    double s = sin(gam * 0.5), c = cos(gam * 0.5);
+    if (s > 0.0 && c > 0.0) return 3;
+    if (s > 0.0 && c < 0.0) return 4;
+    if (s < 0.0 && c < 0.0) return 1;
+    return 2;
+}
+
+static int dirac_pole(double gam)
+{
+    return (sin(gam * 0.5) * cos(gam * 0.5) > 0.0) ? 1 : -1;
+}
+
 /* ── learn() ─────────────────────────────────────────────────────────────── */
 
 void monad_learn_ex(Monad *m, const char *text, int verbose, NSFiletype ft)
@@ -399,7 +424,8 @@ void monad_learn_ex(Monad *m, const char *text, int verbose, NSFiletype ft)
             monad_wm_set(m, word, (uint32_t)idx);
 
             old_beta[nact] = m->beta[idx];
-            double nb = m->beta[idx] + E * MONAD_ALPHA_LEARN;
+            double amp = fabs(sin(m->zeros[idx])) * (M_PI * 0.5);
+            double nb = m->beta[idx] + E * E * MONAD_ALPHA_LEARN * amp;
             if (nb > MONAD_BETA_SAT) nb = MONAD_BETA_SAT;
             m->beta[idx] = nb;
 
@@ -410,6 +436,15 @@ void monad_learn_ex(Monad *m, const char *text, int verbose, NSFiletype ft)
                 m->vocab[idx].present      = 1;
                 m->vocab[idx].home_stratum = NS_SIGMA_TEXT;
                 m->vocab[idx].gen_stratum  = NS_SIGMA_TEXT;
+                m->vocab[idx].prose_seen   = 0;        /* reset — set below */
+            }
+            if (ft == NS_FT_WORDNET)
+                m->vocab[idx].prose_seen = 2;          /* canonical dictionary */
+            else if (ft == NS_FT_PROSE || ft == NS_FT_MARKUP || ft == NS_FT_DOC) {
+                if (m->vocab[idx].prose_seen == 0)
+                    m->vocab[idx].prose_seen = 1;       /* prose only */
+                else if (m->vocab[idx].prose_seen == 2)
+                    m->vocab[idx].prose_seen = 3;       /* WN + prose = verified common */
             }
 
             sidx[nact] = idx; sE[nact] = E; nact++;
@@ -436,20 +471,38 @@ void monad_learn_ex(Monad *m, const char *text, int verbose, NSFiletype ft)
             }
         }
 
-        /* Gauge connections */
+        /* Gauge connections — sliding window, 2D Coulomb coupling.
+         *
+         * A-edges form only between tokens within WINDOW_MAX positions of
+         * each other in the accepted-token stream.  The text distance d = j-i
+         * enters the denominator alongside the zero-space distance |Δγ|:
+         *
+         *   w = Eᵢ × Eⱼ / ((|γᵢ − γⱼ| + GAP) × d)
+         *
+         * This is a 2D inverse-distance law: strong coupling for words that
+         * are close in BOTH spectral space and text position.
+         * The sliding window (step 1, width WINDOW_MAX) ensures each pair
+         * (i, j) at distance d appears in exactly d windows, naturally
+         * weighting close neighbours more than distant ones. */
         for (int i = 0; i < nact; i++) {
-            for (int j = i + 1; j < nact; j++) {
+            int jmax = i + MONAD_WINDOW_MAX;
+            if (jmax > nact) jmax = nact;
+            for (int j = i + 1; j < jmax; j++) {
                 if (sidx[i] == sidx[j]) continue;
-                double dist = fabs(m->zeros[sidx[i]] - m->zeros[sidx[j]]);
-                if (dist < 1e-4) dist = 1e-4;
-                double w = sE[i] * sE[j] / dist;
+                double d_zero = fabs(m->zeros[sidx[i]] - m->zeros[sidx[j]])
+                                + MONAD_GAP;
+                double d_text = (double)(j - i);
+                double couple = (dirac_pole(m->zeros[sidx[i]])
+                                 == dirac_pole(m->zeros[sidx[j]])) ? 2.0 : 1.0;
+                double w      = sE[i] * sE[j] * couple / (d_zero * d_text);
 
                 if (verbose >= 1) {
                     vout("  %sA%s[%d↔%d] +=%s %.4e%s"
-                         "  (|Δγ|=%s%.2f%s  E_i·E_j=%s%.4f%s)\n",
+                         "  (|Δγ|=%s%.2f%s  d=%d  E_i·E_j=%s%.4f%s)\n",
                          CM(), CR(), sidx[i], sidx[j],
                          CY(), w, CR(),
-                         CB(), dist, CR(),
+                         CB(), d_zero - MONAD_GAP, CR(),
+                         (j - i),
                          CB(), sE[i]*sE[j], CR());
                 }
                 monad_a_add(m, sidx[i], sidx[j], w);
@@ -491,17 +544,21 @@ static Activation *monad_hear_raw(Monad *m, const char *query,
         double Jp   = beta * E * E * w;
 
         if (verbose >= 1) {
+            int ph = dirac_phase(m->zeros[idx]);
+            const char *ph_name = (ph==3) ? "Emerger" :
+                                  (ph==1) ? "RevEmrg" :
+                                  (ph==2) ? "trans↑"  : "trail↓";
             vout("  %s%-18s%s z#%-6d  γ=%s%-11.3f%s  σ=%s0.5%s"
-                 "  E=%s%.4f%s  β=%s%.6f%s  w=%s%.4f%s"
-                 "  %sJ_p=%.4f%s  %s\n",
+                 "  E=%s%.4f%s  β=%s%.6f%s"
+                 "  %sJ_p=%.4f%s  phase=%d(%s)  %s\n",
                  CB(), toks[t], CR(),
                  idx,
                  CB(), m->zeros[idx], CR(),
                  CB(), CR(),
                  CB(), E, CR(),
                  CC(), beta, CR(),
-                 CB(), w, CR(),
                  CM(), Jp, CR(),
+                 ph, ph_name,
                  known ? "" : "[new]");
         }
 
@@ -512,6 +569,103 @@ static Activation *monad_hear_raw(Monad *m, const char *query,
 
     tok_free(toks, ntok);
     return act;
+}
+
+/* ── Surface translation layer ───────────────────────────────────────────── *
+ * The field speaks in zero-space vocabulary — tokens whose surface form may
+ * be damaged (web fragments, code tokens) but whose zero-position is correct.
+ * near_canonical() finds the nearest zero-neighbor with a recognisable English
+ * surface, preserving the semantic position while making output human-readable.
+ *
+ * Search radius TRANSLATE_RADIUS: ±50 zeros.  Canonical criteria:
+ *   • length 3–15, all lowercase except optional leading capital
+ *   • no digits, no underscores
+ *   • ≥20% vowels for len≥5, ≥1 vowel for len<5                            */
+
+#define TRANSLATE_RADIUS 50
+
+static int surface_canonical(const char *w)
+{
+    int len = (int)strlen(w);
+    if (len < 3 || len > 15) return 0;
+    int vowels = 0, digits = 0, uppers = 0, specials = 0;
+    for (int i = 0; w[i]; i++) {
+        unsigned char c = (unsigned char)w[i];
+        if (c >= '0' && c <= '9') digits++;
+        if (c >= 'A' && c <= 'Z') uppers++;
+        if (c == 'a'||c == 'e'||c == 'i'||c == 'o'||c == 'u'||
+            c == 'A'||c == 'E'||c == 'I'||c == 'O'||c == 'U') vowels++;
+        if (c == '_' || c == '-' || c == '\'' || c > 127) specials++;
+    }
+    if (digits > 0)               return 0;
+    if (uppers > 1)               return 0;  /* no camelCase */
+    if (specials > 1)             return 0;
+    if (len >= 5 && vowels * 100 / len < 20) return 0;
+    if (len <  5 && vowels == 0)  return 0;
+    return 1;
+}
+
+static const char *near_canonical(const Monad *m, int idx)
+{
+    /* Pass 1: prose_seen==3 — verified in both WordNet and real prose (best) */
+    for (int r = 0; r <= TRANSLATE_RADIUS; r++) {
+        int lo = idx - r, hi = idx + r;
+        if (r == 0) {
+            if (m->vocab[idx].present && m->vocab[idx].prose_seen == 3
+                    && surface_canonical(m->vocab[idx].word))
+                return m->vocab[idx].word;
+        } else {
+            if (lo >= 0 && m->vocab[lo].present && m->vocab[lo].prose_seen == 3
+                        && surface_canonical(m->vocab[lo].word))
+                return m->vocab[lo].word;
+            if (hi < m->N && m->vocab[hi].present && m->vocab[hi].prose_seen == 3
+                          && surface_canonical(m->vocab[hi].word))
+                return m->vocab[hi].word;
+        }
+    }
+    /* Pass 2: prose_seen==1 — seen in real documents */
+    for (int r = 0; r <= TRANSLATE_RADIUS; r++) {
+        int lo = idx - r, hi = idx + r;
+        if (r == 0) {
+            if (m->vocab[idx].present && m->vocab[idx].prose_seen == 1
+                    && surface_canonical(m->vocab[idx].word))
+                return m->vocab[idx].word;
+        } else {
+            if (lo >= 0 && m->vocab[lo].present && m->vocab[lo].prose_seen == 1
+                        && surface_canonical(m->vocab[lo].word))
+                return m->vocab[lo].word;
+            if (hi < m->N && m->vocab[hi].present && m->vocab[hi].prose_seen == 1
+                          && surface_canonical(m->vocab[hi].word))
+                return m->vocab[hi].word;
+        }
+    }
+    /* Pass 3: prose_seen==2 — WordNet only (may be obscure, last-resort dict) */
+    for (int r = 0; r <= TRANSLATE_RADIUS; r++) {
+        int lo = idx - r, hi = idx + r;
+        if (r == 0) {
+            if (m->vocab[idx].present && m->vocab[idx].prose_seen == 2
+                    && surface_canonical(m->vocab[idx].word))
+                return m->vocab[idx].word;
+        } else {
+            if (lo >= 0 && m->vocab[lo].present && m->vocab[lo].prose_seen == 2
+                        && surface_canonical(m->vocab[lo].word))
+                return m->vocab[lo].word;
+            if (hi < m->N && m->vocab[hi].present && m->vocab[hi].prose_seen == 2
+                          && surface_canonical(m->vocab[hi].word))
+                return m->vocab[hi].word;
+        }
+    }
+    /* Pass 4: fallback — any surface-canonical word in radius */
+    for (int r = 0; r <= TRANSLATE_RADIUS; r++) {
+        int lo = idx - r, hi = idx + r;
+        if (lo >= 0 && m->vocab[lo].present
+                    && surface_canonical(m->vocab[lo].word))
+            return m->vocab[lo].word;
+        if (hi < m->N && m->vocab[hi].present
+                      && surface_canonical(m->vocab[hi].word))
+            return m->vocab[hi].word;
+    }
+    return m->vocab[idx].word;
 }
 
 /* ── speak() ─────────────────────────────────────────────────────────────── */
@@ -560,39 +714,67 @@ char *monad_speak(Monad *m, const char *query, int max_tokens, int verbose)
         J[idx] += m->beta[idx] * E * E * w;
     }
 
-    /* A propagation — collect top contributions for verbose display */
+    /* Spectral neighbourhood spread — J diffuses to adjacent zeros.
+     * Implements the Riemann spiral neighbourhood: the zero at γₙ has
+     * "couch" neighbours at γ_{n±1}, γ_{n±2}, … that share topological
+     * proximity on the critical line. Decay = exp(-SPREAD_DECAY × |Δn|). */
+    for (int k = 0; k < n_act; k++) {
+        int    center = psi[k].idx;
+        double Jc     = J[center];
+        if (Jc <= 0.0) continue;
+        for (int dn = 1; dn <= MONAD_SPREAD_RADIUS; dn++) {
+            double w_spread = exp(-MONAD_SPREAD_DECAY * dn);
+            int lo = center - dn, hi = center + dn;
+            if (lo >= 0)   J[lo] += Jc * w_spread;
+            if (hi < m->N) J[hi] += Jc * w_spread;
+        }
+    }
+
+    /* ── Two-pass A-propagation: Emerger (signal) then Reverse Emerger (slot) ─
+     * Both passes read from J0 — the field state before either pass.  This
+     * prevents the short-circuit where return current reads amplified forward
+     * current.  Words elevated by BOTH passes are the standing-wave nodes.   */
+    double *J0 = malloc((size_t)m->N * sizeof(double));
+    memcpy(J0, J, (size_t)m->N * sizeof(double));
+
     VProp vprop[VPROP_MAX];
     int   nvp    = 0;
     double min_vp = 0.0;
 
-    for (int k = 0; k < m->am_cap; k++) {
-        if (m->am[k].key == 0) continue;
-        int    i  = (int)(m->am[k].key >> 15);
-        int    j  = (int)(m->am[k].key & 0x7FFF);
-        double aw = m->am[k].val;
-        double wi = exp(-MONAD_LAMBDA * m->age[i]);
-        double wj = exp(-MONAD_LAMBDA * m->age[j]);
+    for (int pass = 0; pass < 2; pass++) {
+        for (int k = 0; k < m->am_cap; k++) {
+            if (m->am[k].key == 0) continue;
+            int    i  = (int)(m->am[k].key >> 15);
+            int    j  = (int)(m->am[k].key & 0x7FFF);
+            double aw = m->am[k].val;
+            double clamped = aw < (1.0 / MONAD_GAP) ? aw : (1.0 / MONAD_GAP);
 
-        if (J[i] > 0.0) {
-            double contrib = J[i] * aw * m->beta[j] * wj;
-            J[j] += contrib;
-            if (verbose >= 1 && contrib > min_vp) {
-                if (nvp < VPROP_MAX) {
-                    vprop[nvp++] = (VProp){i, j, contrib};
-                } else {
-                    int mi = 0;
-                    for (int x = 1; x < VPROP_MAX; x++)
-                        if (vprop[x].contrib < vprop[mi].contrib) mi = x;
-                    if (contrib > vprop[mi].contrib) {
-                        vprop[mi] = (VProp){i, j, contrib};
-                        min_vp = vprop[mi].contrib;
+            if (pass == 0 && J0[i] > 0.0) {
+                /* Emerger: signal flows i→j */
+                double wj = exp(-MONAD_LAMBDA * m->age[j]);
+                double contrib = J0[i] * clamped * m->beta[j] * wj;
+                J[j] += contrib;
+                if (verbose >= 1 && contrib > min_vp) {
+                    if (nvp < VPROP_MAX) {
+                        vprop[nvp++] = (VProp){i, j, contrib};
+                    } else {
+                        int mi = 0;
+                        for (int x = 1; x < VPROP_MAX; x++)
+                            if (vprop[x].contrib < vprop[mi].contrib) mi = x;
+                        if (contrib > vprop[mi].contrib) {
+                            vprop[mi] = (VProp){i, j, contrib};
+                            min_vp = vprop[mi].contrib;
+                        }
                     }
                 }
+            } else if (pass == 1 && J0[j] > 0.0) {
+                /* Reverse Emerger: slot fires j→i from J0 */
+                double wi = exp(-MONAD_LAMBDA * m->age[i]);
+                J[i] += J0[j] * clamped * m->beta[i] * wi;
             }
         }
-        if (J[j] > 0.0)
-            J[i] += J[j] * aw * m->beta[i] * wi;
     }
+    free(J0);
 
     if (verbose >= 1 && nvp > 0) {
         qsort(vprop, nvp, sizeof(VProp), vpcmp);
@@ -610,36 +792,80 @@ char *monad_speak(Monad *m, const char *query, int max_tokens, int verbose)
         }
     }
 
-    int     njv = 0;
-    JEntry *jv  = malloc((size_t)m->N * sizeof(JEntry));
-    for (int i = 0; i < m->N; i++) {
-        if (J[i] > 0.0 && m->vocab[i].present) {
-            jv[njv].idx = i; jv[njv].J = J[i]; njv++;
+    /* ── Fermat Pointer — median γ of query zeros ────────────────────────── *
+     * The causal centre between query and response.  The zero nearest the
+     * median of the query words' γ values is the Pointer — the last-
+     * scattering surface of this particular field excitation.              */
+    int pointer_idx = 0;
+    if (n_act > 0) {
+        double *gams = malloc((size_t)n_act * sizeof(double));
+        for (int k = 0; k < n_act; k++) gams[k] = m->zeros[psi[k].idx];
+        for (int a = 1; a < n_act; a++) {          /* insertion sort — tiny */
+            double tmp = gams[a]; int b = a;
+            while (b > 0 && gams[b-1] > tmp) { gams[b] = gams[b-1]; b--; }
+            gams[b] = tmp;
         }
+        double pg = gams[n_act / 2];
+        free(gams);
+        double best = fabs(m->zeros[0] - pg);
+        for (int i = 1; i < m->N; i++) {
+            double d = fabs(m->zeros[i] - pg);
+            if (d < best) { best = d; pointer_idx = i; }
+        }
+        if (verbose >= 1)
+            vout("%s%s[Fermat Pointer]%s  z#%-6d  γ=%s%.3f%s\n",
+                 CB(), CG(), CR(), pointer_idx,
+                 CB(), m->zeros[pointer_idx], CR());
     }
-    qsort(jv, njv, sizeof(JEntry), jcmp);
 
-    if (verbose >= 1 && njv > 0) {
-        int show = njv < 12 ? njv : 12;
-        vout("%s%s[ranking — top %d]%s\n", CB(), CG(), show, CR());
-        for (int k = 0; k < show; k++) {
-            vout("  %2d. %s%-20s%s z#%-6d  J=%s%.4e%s\n",
-                 k+1,
-                 CB(), m->vocab[jv[k].idx].word, CR(),
-                 jv[k].idx,
-                 CG(), jv[k].J, CR());
-        }
-    }
+    /* ── Golden angle walk — φ² step through zero spectrum ──────────────── *
+     * Step size = round(N/φ²).  Because φ is the most irrational number,
+     * the walk visits every zero exactly once before repeating and never
+     * clusters — maximum equidistribution: the Fibonacci spiral in zero-
+     * space.  Words are emitted in walk order (waveform position), not by
+     * J magnitude.  Gates: J > MONAD_GAP (above mass gap floor) and
+     * sin(γ/2) > 0 (positive lobe of the Noether waveform).               */
+    /* Relative J floor — top 1% of field current, never below mass gap. */
+    double J_max = 0.0;
+    for (int i = 0; i < m->N; i++)
+        if (J[i] > J_max) J_max = J[i];
+    double J_floor = J_max * 0.01;
+    if (J_floor < MONAD_GAP) J_floor = MONAD_GAP;
+
+    int golden_step = (int)round((double)m->N / (MONAD_PHI * MONAD_PHI));
+    if (golden_step < 1) golden_step = 1;
+
+    if (verbose >= 1)
+        vout("%s%s[golden walk]%s  step=%d  pointer=z#%d  J_floor=%.4e\n",
+             CB(), CG(), CR(), golden_step, pointer_idx, J_floor);
 
     int   out_cap = max_tokens * (MAX_WORD_LEN + 1) + 4;
     char *out     = malloc(out_cap);
     out[0] = '\0';
-    int written = 0;
-    for (int i = 0; i < njv && written < max_tokens; i++) {
-        const char *w = m->vocab[jv[i].idx].word;
-        if (!token_accept(w, NS_FT_PROSE)) continue;   /* surface filter */
+    int written   = 0;
+    int walk_idx  = pointer_idx;
+    for (int step = 0; step < m->N && written < max_tokens; step++) {
+        walk_idx = (walk_idx + golden_step) % m->N;
+        if (!m->vocab[walk_idx].present)            continue;
+        if (J[walk_idx] <= J_floor)                 continue;
+        double gam = m->zeros[walk_idx];
+        if (sin(gam * 0.5) <= 0.0)                  continue; /* Phase 3 or 4 */
+        if (cos(gam * 0.5) <= 0.0)                  continue; /* Phase 3 only */
+        const char *w = m->vocab[walk_idx].word;
+        if (!token_accept(w, NS_FT_PROSE))           continue;
+        const char *surface = near_canonical(m, walk_idx);
+        if (verbose >= 1)
+            vout("  emit z#%-6d  γ=%s%.3f%s  J=%s%.4e%s"
+                 "  sin=%+.3f  cos=%+.3f  ph=3  %s%s%s%s\n",
+                 walk_idx,
+                 CB(), gam, CR(),
+                 CG(), J[walk_idx], CR(),
+                 sin(gam * 0.5), cos(gam * 0.5),
+                 CB(), w, CR(),
+                 (surface != w) ? " →" : "",
+                 (surface != w) ? surface : "");
         if (out[0]) strncat(out, " ", out_cap - strlen(out) - 1);
-        strncat(out, w, out_cap - strlen(out) - 1);
+        strncat(out, surface, out_cap - strlen(out) - 1);
         written++;
     }
 
@@ -650,7 +876,7 @@ char *monad_speak(Monad *m, const char *query, int max_tokens, int verbose)
     for (int i = 0; i < m->N; i++) m->age[i]++;
     for (int k = 0; k < n_act; k++) m->age[psi[k].idx] = 0;
 
-    free(J); free(jv); free(psi);
+    free(J); free(psi);
     return out;
 }
 
@@ -690,58 +916,130 @@ char *monad_speak_wick(Monad *m, const char *query, int max_tokens, int verbose)
     double *J = malloc((size_t)m->N * sizeof(double));
     memset(J, 0, (size_t)m->N * sizeof(double));
 
-    /* Wick-rotated primary current: β × E² × sin(σ·E),  σ = 0.5 */
+    /* Wick-rotated primary current: β × E² × sin(γₙ/2)
+     *
+     * The Wick rotation σ → iσ oscillates at the ZERO'S OWN FREQUENCY γₙ,
+     * not at the narrow spectral energy E ∈ [0.246, 0.567].  γₙ spans
+     * [14, 25000], so sin(γₙ/2) is neither monotone nor nearly-linear —
+     * it alternates sign across the zero spectrum.  Words whose zeros fall
+     * where sin(γₙ/2) > 0 are promoted in Wick mode; where sin(γₙ/2) < 0
+     * they contribute negative J and are excluded by the J>0 gates below.
+     * This creates genuine divergence between -h (real, geometric) and
+     * -W (imaginary, oscillatory) that is query-dependent. */
     for (int k = 0; k < n_act; k++) {
         int idx = psi[k].idx; double E = psi[k].E;
-        double w = exp(-MONAD_LAMBDA * m->age[idx]);
-        J[idx] += m->beta[idx] * E * E * sin(0.5 * E) * w;
+        double w    = exp(-MONAD_LAMBDA * m->age[idx]);
+        double gam  = m->zeros[idx];          /* γₙ — zero imaginary part */
+        J[idx] += m->beta[idx] * E * E * sin(gam * 0.5) * w;
     }
 
-    /* A propagation — same topology, Wick-rotated weights */
-    for (int k = 0; k < m->am_cap; k++) {
-        if (m->am[k].key == 0) continue;
-        int    i  = (int)(m->am[k].key >> 15);
-        int    j  = (int)(m->am[k].key & 0x7FFF);
-        double aw = m->am[k].val;
-        double wi = exp(-MONAD_LAMBDA * m->age[i]);
-        double wj = exp(-MONAD_LAMBDA * m->age[j]);
-        if (J[i] > 0.0) J[j] += J[i] * aw * m->beta[j] * wj;
-        if (J[j] > 0.0) J[i] += J[j] * aw * m->beta[i] * wi;
-    }
-
-    int     njv = 0;
-    JEntry *jv  = malloc((size_t)m->N * sizeof(JEntry));
-    for (int i = 0; i < m->N; i++) {
-        if (J[i] > 0.0 && m->vocab[i].present) {
-            jv[njv].idx = i; jv[njv].J = J[i]; njv++;
+    /* Spectral neighbourhood spread (same as monad_speak; only positive J spreads) */
+    for (int k = 0; k < n_act; k++) {
+        int    center = psi[k].idx;
+        double Jc     = J[center];
+        if (Jc <= 0.0) continue;
+        for (int dn = 1; dn <= MONAD_SPREAD_RADIUS; dn++) {
+            double w_spread = exp(-MONAD_SPREAD_DECAY * dn);
+            int lo = center - dn, hi = center + dn;
+            if (lo >= 0)   J[lo] += Jc * w_spread;
+            if (hi < m->N) J[hi] += Jc * w_spread;
         }
     }
-    qsort(jv, njv, sizeof(JEntry), jcmp);
 
-    if (verbose >= 1) {
-        vout("[J_wick — Wick-rotated Noether current  σ→iσ]\n");
-        int show = njv < 12 ? njv : 12;
-        for (int k = 0; k < show; k++)
-            vout("  %2d. %-20s z#%-6d  J_w=%.4e\n",
-                 k+1, m->vocab[jv[k].idx].word, jv[k].idx, jv[k].J);
+    /* Two-pass A-propagation — same Emerger/Reverse Emerger contract as speak() */
+    double *J0w = malloc((size_t)m->N * sizeof(double));
+    memcpy(J0w, J, (size_t)m->N * sizeof(double));
+
+    for (int pass = 0; pass < 2; pass++) {
+        for (int k = 0; k < m->am_cap; k++) {
+            if (m->am[k].key == 0) continue;
+            int    i  = (int)(m->am[k].key >> 15);
+            int    j  = (int)(m->am[k].key & 0x7FFF);
+            double aw = m->am[k].val;
+            double clamped = aw < (1.0 / MONAD_GAP) ? aw : (1.0 / MONAD_GAP);
+            if (pass == 0 && J0w[i] > 0.0) {
+                double wj = exp(-MONAD_LAMBDA * m->age[j]);
+                J[j] += J0w[i] * clamped * m->beta[j] * wj;
+            } else if (pass == 1 && J0w[j] > 0.0) {
+                double wi = exp(-MONAD_LAMBDA * m->age[i]);
+                J[i] += J0w[j] * clamped * m->beta[i] * wi;
+            }
+        }
     }
+    free(J0w);
+
+    /* Fermat Pointer — same causal anchor as speak() */
+    int pointer_idx = 0;
+    if (n_act > 0) {
+        double *gams = malloc((size_t)n_act * sizeof(double));
+        for (int k = 0; k < n_act; k++) gams[k] = m->zeros[psi[k].idx];
+        for (int a = 1; a < n_act; a++) {
+            double tmp = gams[a]; int b = a;
+            while (b > 0 && gams[b-1] > tmp) { gams[b] = gams[b-1]; b--; }
+            gams[b] = tmp;
+        }
+        double pg = gams[n_act / 2];
+        free(gams);
+        double best = fabs(m->zeros[0] - pg);
+        for (int i = 1; i < m->N; i++) {
+            double d = fabs(m->zeros[i] - pg);
+            if (d < best) { best = d; pointer_idx = i; }
+        }
+        if (verbose >= 1)
+            vout("%s%s[Fermat Pointer — Wick]%s  z#%-6d  γ=%s%.3f%s\n",
+                 CB(), CG(), CR(), pointer_idx,
+                 CB(), m->zeros[pointer_idx], CR());
+    }
+
+    /* Relative J floor */
+    double J_max_w = 0.0;
+    for (int i = 0; i < m->N; i++)
+        if (J[i] > J_max_w) J_max_w = J[i];
+    double J_floor_w = J_max_w * 0.01;
+    if (J_floor_w < MONAD_GAP) J_floor_w = MONAD_GAP;
+
+    /* Golden walk — Phase 1 gate: Reverse Emerger / vacuum / dark emission */
+    int golden_step_w = (int)round((double)m->N / (MONAD_PHI * MONAD_PHI));
+    if (golden_step_w < 1) golden_step_w = 1;
+
+    if (verbose >= 1)
+        vout("%s%s[golden walk — Wick/Phase1]%s  step=%d  J_floor=%.4e\n",
+             CB(), CG(), CR(), golden_step_w, J_floor_w);
 
     int   out_cap = max_tokens * (MAX_WORD_LEN + 1) + 4;
     char *out     = malloc(out_cap);
     out[0] = '\0';
-    int written = 0;
-    for (int i = 0; i < njv && written < max_tokens; i++) {
-        const char *w = m->vocab[jv[i].idx].word;
+    int written  = 0;
+    int walk_idx = pointer_idx;
+    for (int step = 0; step < m->N && written < max_tokens; step++) {
+        walk_idx = (walk_idx + golden_step_w) % m->N;
+        if (!m->vocab[walk_idx].present)   continue;
+        if (J[walk_idx] <= J_floor_w)      continue;
+        double gam = m->zeros[walk_idx];
+        if (sin(gam * 0.5) >= 0.0)         continue; /* Phase 1 or 2 */
+        if (cos(gam * 0.5) >= 0.0)         continue; /* Phase 1 only */
+        const char *w = m->vocab[walk_idx].word;
         if (!token_accept(w, NS_FT_PROSE)) continue;
+        const char *surface_w = near_canonical(m, walk_idx);
+        if (verbose >= 1)
+            vout("  emit z#%-6d  γ=%s%.3f%s  J=%s%.4e%s"
+                 "  sin=%+.3f  cos=%+.3f  ph=1  %s%s%s%s\n",
+                 walk_idx,
+                 CB(), gam, CR(),
+                 CG(), J[walk_idx], CR(),
+                 sin(gam * 0.5), cos(gam * 0.5),
+                 CB(), w, CR(),
+                 (surface_w != w) ? " →" : "",
+                 (surface_w != w) ? surface_w : "");
         if (out[0]) strncat(out, " ", out_cap - strlen(out) - 1);
-        strncat(out, w, out_cap - strlen(out) - 1);
+        strncat(out, surface_w, out_cap - strlen(out) - 1);
         written++;
     }
 
     for (int i = 0; i < m->N; i++) m->age[i]++;
     for (int k = 0; k < n_act; k++) m->age[psi[k].idx] = 0;
 
-    free(J); free(jv); free(psi);
+    free(J); free(psi);
     return out;
 }
 
@@ -774,10 +1072,15 @@ void monad_lookup(const Monad *m, const char *word, FILE *out)
     double gamma = (idx < m->N) ? m->zeros[idx] : 0.0;
     uint8_t hs   = known ? m->vocab[idx].home_stratum : NS_SIGMA_TEXT;
     uint8_t gs   = known ? m->vocab[idx].gen_stratum  : NS_SIGMA_TEXT;
+    int ph = dirac_phase(gamma);
+    const char *ph_name = (ph==3) ? "Emerger" :
+                          (ph==1) ? "RevEmrg" :
+                          (ph==2) ? "trans↑"  : "trail↓";
     fprintf(out,
         "  %-24s z#%-6d  γ=%-11.4f  σ=0.5  E=%.4f  β=%.6f"
-        "  home=σ%u  gen=σ%u  %s\n",
-        word, idx, gamma, E, beta, hs, gs, known ? "[known]" : "[new]");
+        "  home=σ%u  gen=σ%u  ph=%d(%s)  %s\n",
+        word, idx, gamma, E, beta, hs, gs,
+        ph, ph_name, known ? "[known]" : "[new]");
 }
 
 void monad_health(const Monad *m, FILE *out)

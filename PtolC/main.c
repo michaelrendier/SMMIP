@@ -125,7 +125,7 @@ static Arg parse_arg(const char *a)
     for (const char *p = a + 1; *p; p++) {
         switch (*p) {
             case 'v': r.v++; break;
-            case 'l': case 'h': case 's': case 'w':
+            case 'l': case 'L': case 'h': case 's': case 'w':
             case 'c': case 'n': case 'V': case 'i':
             case 'I': case 'q': case 'd': case 'D':
             case 'F': case 'S': case 'W':
@@ -134,6 +134,58 @@ static Arg parse_arg(const char *a)
         }
     }
     return r;
+}
+
+/* ── English re-anchor ────────────────────────────────────────────────────── *
+ * After every filesystem ingest, re-learn the English grammar corpus.
+ * This re-applies the gauge constraint: function words and connective
+ * structure are re-anchored so domain-specific A-edges don't crowd out
+ * the English backbone.
+ *
+ * Search order:
+ *   1. {PTOLEMY_HOME}/english_grammar.txt   (deployed / installed)
+ *   2. ./corpora/english_grammar.txt        (running from source tree)
+ *   3. /proc/self/exe/../corpora/...        (binary-relative)             */
+static void reanchor_english(Monad *m, int verbose)
+{
+    char paths[3][4096];
+    snprintf(paths[0], sizeof(paths[0]), "%s/english_grammar.txt", g_ptolemy_dir);
+    snprintf(paths[1], sizeof(paths[1]), "corpora/english_grammar.txt");
+
+    /* binary-relative path via /proc/self/exe */
+    paths[2][0] = '\0';
+    char exebuf[4096];
+    ssize_t exelen = readlink("/proc/self/exe", exebuf, sizeof(exebuf) - 1);
+    if (exelen > 0) {
+        exebuf[exelen] = '\0';
+        char *slash = strrchr(exebuf, '/');
+        if (slash) {
+            *slash = '\0';
+            snprintf(paths[2], sizeof(paths[2]),
+                     "%s/corpora/english_grammar.txt", exebuf);
+        }
+    }
+
+    for (int k = 0; k < 3; k++) {
+        if (!paths[k][0]) continue;
+        if (access(paths[k], R_OK) != 0) continue;
+        char *text = NULL;
+        FILE *f = fopen(paths[k], "rb");
+        if (f) {
+            fseek(f, 0, SEEK_END); long sz = ftell(f); rewind(f);
+            text = malloc(sz + 1);
+            if (text) { size_t got = fread(text, 1, sz, f); text[got] = '\0'; }
+            fclose(f);
+        }
+        if (!text) continue;
+        fprintf(stderr, "[ptolemy] re-anchor English grammar (%zu bytes)\n",
+                strlen(text));
+        monad_learn(m, text, verbose);
+        free(text);
+        return;
+    }
+    fprintf(stderr, "[ptolemy] warning: english_grammar.txt not found — "
+            "run 'make grammar' to install\n");
 }
 
 /* ── I/O helpers ──────────────────────────────────────────────────────────── */
@@ -350,8 +402,8 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        /* -l : learn ─────────────────────────────────────────────────── */
-        if (a.primary == 'l' && i + 1 < argc) {
+        /* -l : learn  /  -L : learn as WordNet (canonical English) ───── */
+        if ((a.primary == 'l' || a.primary == 'L') && i + 1 < argc) {
             const char *src  = argv[++i];
             char       *text = NULL;
 
@@ -362,14 +414,21 @@ int main(int argc, char *argv[])
                 fprintf(stderr, "[ptolemy] fetching %s ...\n", src);
                 text = read_url(src);
             } else {
-                text = read_file(src);
+                if (access(src, R_OK) == 0) {
+                    text = read_file(src);
+                } else {
+                    /* not a readable file — treat argument as literal text */
+                    text = strdup(src);
+                }
             }
 
             if (text) {
                 int lv = (verbose >= 1) ? verbose : a.v;
-                fprintf(stderr, "[ptolemy] learning %s  (%zu bytes)\n",
-                        src, strlen(text));
-                monad_learn(m, text, lv);
+                NSFiletype lft = (a.primary == 'L') ? NS_FT_WORDNET : NS_FT_PROSE;
+                fprintf(stderr, "[ptolemy] learning (%zu bytes)%s\n",
+                        strlen(text),
+                        lft == NS_FT_WORDNET ? " [wordnet]" : "");
+                monad_learn_ex(m, text, lv, lft);
                 monad_self_flush(m);
                 free(text);
                 learned = 1;
@@ -392,7 +451,11 @@ int main(int argc, char *argv[])
                 save_to = ingest_ckpt;
             }
             int n = ingest_path(m, root, iv, save_to);
-            if (n > 0) { learned = 1; did_ingest = 1; monad_status(m, stderr); }
+            if (n > 0) {
+                learned = 1; did_ingest = 1;
+                reanchor_english(m, 0);   /* re-apply gauge constraint */
+                monad_status(m, stderr);
+            }
             continue;
         }
 
