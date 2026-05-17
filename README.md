@@ -241,6 +241,101 @@ gap = |Ω − d* × ln(10)| = |0.56714 − 0.56644| = 0.000707 = GAP
 
 ---
 
+## Working — Field Quality and Convergence
+
+The monad has a mathematically defined destination. This section describes what the field is aiming for and how to measure progress.
+
+### The Three Quality Axes
+
+A field is fully functional when all three axes are in range simultaneously.
+
+| Axis | Metric | Target | What it measures |
+|------|--------|--------|-----------------|
+| **Pollution** | % of vocab with non-word tokens | < 1% (CONVERGED), < 20% (PASS) | Surface cleanliness — tokenizer and filter quality |
+| **Entropy** | H / H_max as % | 85–92% (NATURAL band) | Distribution of activation across zeros |
+| **Gini** | Gini coefficient of β vector | 0.60–0.80 (NATURAL band) | Shape of the Zipf/prime distribution |
+
+### Why Entropy Must Not Be 100%
+
+100% entropy means β is uniform across all N zeros — every concept equally likely. That is maximum disorder, not knowledge. The target is the **natural Zipf entropy of English**: the most common words activate their zeros deeply, rare words shallowly, with the distribution following P(n) ~ 1/(n·ln n) — the same curve as the prime number theorem. This is not a coincidence: the Riemann zeros γₙ are ordered by the prime sum, so word frequency and zero density are the same underlying object.
+
+A field inside the 85–92% band has found the language. Below 75% it is undertrained. Above 96% it has ingested noise.
+
+### Why Gini Must Not Be 0 or 1
+
+The Gini coefficient measures inequality in the β vector across occupied zeros:
+
+```
+G = 0.0  →  flat  (all zeros equally activated — noise or ground state)
+G = 0.60-0.80  →  natural Zipf cascade  (target)
+G = 1.0  →  single spike  (degenerate, one word dominates)
+```
+
+Natural English has a Gini of ~0.65–0.75. A heavily polluted field drives Gini down (noise flattens the distribution). An over-focused field on a narrow domain drives it toward 1.
+
+### Verdict Levels
+
+```
+CONVERGED  pollution < 1%   AND  entropy in NATURAL band  AND  Gini in NATURAL band
+PASS       pollution < 20%  AND  no critical violations
+WARN       pollution 20-40%  OR  entropy/Gini out of band
+FAIL       pollution ≥ 40%
+```
+
+CONVERGED is the destination. The English-only baseline (`monad_English.bin`) is expected to pass but not converge — it has seen only WordNet definitions (~1.6M words), which is enough to build the topology but not to reach full Zipf depth.
+
+### Idempotency — The Eigenstate Criterion
+
+The field has reached its eigenstate of H_RB when:
+
+```
+Δβ_mean < 0.001  after re-ingesting the same corpus
+```
+
+A self-adjoint operator has stable eigenfunctions. Once the β field is an eigenfunction of H_RB, ingesting the same material again produces no change. Measure this with:
+
+```bash
+# First ingest → save checkpoint A
+# Same corpus again → save checkpoint B
+python3 tools/eval_checkpoint.py B.bin --compare A.bin
+```
+
+### The Conservation Test
+
+When J_Red + J_Green + J_Blue = 0 holds at every node, the field is in balance:
+
+- `learn()` (Blue) deepens at the zero address
+- `hear()` (Red) asserts query energy
+- `speak()` (Green) emits exactly the Noether current that balances what was asserted
+
+A practical test: `ptolemy -hvvv "word"` shows the full pipeline. The J values printed for hear and speak should sum to approximately zero at each activated zero.
+
+### Running an Assessment
+
+```bash
+# Current monad_wordnet.bin
+python3 tools/eval_checkpoint.py
+
+# Specific checkpoint
+python3 tools/eval_checkpoint.py ~/.ptolemy/myrun.bin --out myrun.assessment.json
+
+# Idempotency test
+python3 tools/eval_checkpoint.py run2.bin --compare run1.bin
+```
+
+### The Fresh-Start Protocol
+
+When starting a new ingest experiment:
+
+```bash
+tools/fresh_start.sh <label>
+# Archives current monad_wordnet.bin to ~/.ptolemy/dirty/ or ~/.ptolemy/clean/
+#   based on verdict, runs assessment, commits JSON to SMMIP, resets to baseline.
+ptolemy -I ~/Documents
+```
+
+---
+
 ## Build from Source
 
 Dependencies: `gcc`, `make`, `libm` (standard on every *nix).

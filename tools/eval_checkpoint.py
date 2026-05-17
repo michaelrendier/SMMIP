@@ -3,16 +3,28 @@
 eval_checkpoint.py — RedBlue Geometries Engine checkpoint evaluator.
 
 Parses a ptolemy .bin checkpoint and produces a structured assessment:
-  - field health (entropy, β distribution, coverage)
+  - field health (entropy band, β distribution, Gini coefficient)
   - vocabulary quality (clean vs polluted token classification)
   - top tokens by β and top A-edges by weight
   - pollution breakdown by category
+  - idempotency score vs a reference checkpoint (--compare)
 
 Usage:
     python3 eval_checkpoint.py [checkpoint.bin] [--json] [--out report.json]
+    python3 eval_checkpoint.py new.bin --compare old.bin   # idempotency delta
 
 Outputs human-readable report by default; --json emits machine-readable JSON.
-Exit code 1 if pollution exceeds 20% of vocab.
+
+Verdict levels (all three criteria must pass for CONVERGED):
+  CONVERGED  pollution < 1%  AND  entropy in natural band  AND  Gini in natural range
+  PASS       pollution < 20% AND  no critical band violations
+  WARN       pollution 20-40% OR  entropy/Gini out of band
+  FAIL       pollution >= 40%
+
+Target bands:
+  Entropy % of H_max:  85-92%  (natural Zipf/prime distribution)
+  Gini coefficient:    0.60-0.80  (right-skewed, not flat and not spiked)
+  Pollution:           < 1%  (converged),  < 20%  (pass)
 """
 
 import struct, re, sys, json, os, math, argparse
@@ -120,6 +132,49 @@ def field_entropy(betas, N):
     return H
 
 
+def gini_coefficient(betas):
+    """Gini coefficient over occupied zeros (β above ground floor).
+
+    0.0 = perfectly flat (noise / untrained)
+    0.60-0.80 = natural Zipf/prime distribution (target)
+    1.0 = single spike (degenerate)
+    """
+    ground_floor = abs(-1.888) / max(len(betas), 1) * 2
+    occupied = sorted(b for b in betas if b > ground_floor)
+    n = len(occupied)
+    if n < 2:
+        return 0.0
+    total = sum(occupied)
+    if total == 0:
+        return 0.0
+    numerator = sum((2 * i - n - 1) * b for i, b in enumerate(occupied, 1))
+    return numerator / (n * total)
+
+
+def entropy_band(entropy_pct):
+    """Classify entropy % of H_max into a named band."""
+    if entropy_pct < 75:
+        return 'UNDERTRAINED'
+    if entropy_pct < 85:
+        return 'LOW'
+    if entropy_pct <= 92:
+        return 'NATURAL'
+    if entropy_pct <= 96:
+        return 'HIGH'
+    return 'NOISY'
+
+
+def gini_band(g):
+    """Classify Gini coefficient into a named band."""
+    if g < 0.30:
+        return 'FLAT'
+    if g < 0.60:
+        return 'SHALLOW'
+    if g <= 0.80:
+        return 'NATURAL'
+    return 'SPIKED'
+
+
 def beta_distribution(betas, threshold, beta_sat):
     ground_floor = abs(-1.888) / max(len(betas), 1) * 2
     dist = Counter()
@@ -164,6 +219,12 @@ def evaluate(path):
     # Entropy
     H     = field_entropy(betas, N)
     H_max = math.log2(max(ck['vocab_size'], 1))
+    H_pct = round(100 * H / H_max, 1) if H_max else 0
+
+    # Gini coefficient
+    G      = gini_coefficient(betas)
+    G_band = gini_band(G)
+    H_band = entropy_band(H_pct)
 
     # Top by β
     top_beta = sorted(vocab, key=lambda e: -e['beta'])[:20]
@@ -171,6 +232,19 @@ def evaluate(path):
     # Top A-edges (need word lookup by idx)
     idx_to_word = {e['idx']: e['word'] for e in vocab}
     top_edges = sorted(edges, key=lambda e: -e[2])[:20]
+
+    # Verdict
+    in_natural_band = (H_band == 'NATURAL') and (G_band == 'NATURAL')
+    if poll_pct >= 40.0:
+        verdict = 'FAIL'
+    elif poll_pct >= 20.0:
+        verdict = 'WARN'
+    elif not in_natural_band:
+        verdict = 'PASS'
+    elif poll_pct < 1.0:
+        verdict = 'CONVERGED'
+    else:
+        verdict = 'PASS'
 
     return {
         'timestamp':    datetime.now(timezone.utc).isoformat(),
@@ -185,7 +259,10 @@ def evaluate(path):
         'threshold':    ck['threshold'],
         'entropy_H':    round(H, 4),
         'entropy_H_max':round(H_max, 4),
-        'entropy_pct':  round(100 * H / H_max, 1) if H_max else 0,
+        'entropy_pct':  H_pct,
+        'entropy_band': H_band,
+        'gini':         round(G, 4),
+        'gini_band':    G_band,
         'beta_dist':    dict(bdist),
         'clean_count':  len(clean),
         'polluted_count': len(polluted),
@@ -202,7 +279,7 @@ def evaluate(path):
              'weight': round(aw, 4)}
             for ai, aj, aw in top_edges
         ],
-        'verdict': 'PASS' if poll_pct < 20.0 else 'WARN' if poll_pct < 40.0 else 'FAIL',
+        'verdict': verdict,
     }
 
 
@@ -220,7 +297,9 @@ def render(r):
     lines.append(f"  A-edges    {r['A_size']:,}")
     lines.append(f"  Words seen {r['word_count']:,}")
     lines.append(f"")
-    lines.append(f"  Entropy    {r['entropy_H']} / {r['entropy_H_max']} bits  ({r['entropy_pct']}%)")
+    lines.append(f"  Entropy    {r['entropy_H']} / {r['entropy_H_max']} bits  "
+                 f"({r['entropy_pct']}%)  [{r['entropy_band']}]")
+    lines.append(f"  Gini       {r['gini']:.4f}  [{r['gini_band']}]")
     d = r['beta_dist']
     lines.append(f"  β dist     ground={d.get('ground',0)}  low={d.get('low',0)}  "
                  f"mid={d.get('mid',0)}  high={d.get('high',0)}  sat={d.get('sat',0)}")
@@ -228,6 +307,11 @@ def render(r):
     lines.append(f"  Clean      {r['clean_count']:,}  ({100-r['pollution_pct']:.1f}%)")
     lines.append(f"  Polluted   {r['polluted_count']:,}  ({r['pollution_pct']:.1f}%)")
     lines.append(f"  Verdict    {r['verdict']}")
+    lines.append(f"")
+    lines.append(f"  Target bands:")
+    lines.append(f"    Entropy  85-92% of H_max  → {r['entropy_band']}")
+    lines.append(f"    Gini     0.60-0.80         → {r['gini_band']}")
+    lines.append(f"    Pollution < 1% (CONVERGED), < 20% (PASS)")
     lines.append(f"")
     lines.append(f"  Pollution by category:")
     for cat, n in sorted(r['pollution_by_category'].items(), key=lambda x: -x[1]):
@@ -245,6 +329,62 @@ def render(r):
     return '\n'.join(lines)
 
 
+# ── Idempotency comparison ─────────────────────────────────────────────────────
+
+def compare_checkpoints(path_new, path_ref):
+    """Compare β vectors of two checkpoints. Returns idempotency report dict.
+
+    The convergence criterion: repeated ingestion of the same corpus should
+    move β < ε per zero. When Δβ_mean → 0, the field is an eigenfunction of H_RB.
+    """
+    ck_new = load_checkpoint(path_new)
+    ck_ref = load_checkpoint(path_ref)
+
+    N = min(ck_new['N'], ck_ref['N'])
+    b_new = ck_new['betas'][:N]
+    b_ref = ck_ref['betas'][:N]
+
+    deltas = [abs(b_new[i] - b_ref[i]) for i in range(N)]
+    mean_delta  = sum(deltas) / N
+    max_delta   = max(deltas)
+    moved_1e3   = sum(1 for d in deltas if d > 1e-3)
+    moved_1e4   = sum(1 for d in deltas if d > 1e-4)
+    converged   = mean_delta < 1e-3
+
+    return {
+        'path_new':     os.path.abspath(path_new),
+        'path_ref':     os.path.abspath(path_ref),
+        'N_compared':   N,
+        'delta_mean':   round(mean_delta, 6),
+        'delta_max':    round(max_delta, 6),
+        'zeros_moved_1e3': moved_1e3,
+        'zeros_moved_1e4': moved_1e4,
+        'converged':    converged,
+        'verdict':      'CONVERGED' if converged else 'DRIFTING',
+    }
+
+
+def render_compare(c):
+    lines = [
+        f"{'='*60}",
+        f"  Idempotency Delta",
+        f"{'='*60}",
+        f"  New   {c['path_new']}",
+        f"  Ref   {c['path_ref']}",
+        f"  N     {c['N_compared']:,}  zeros compared",
+        f"",
+        f"  Δβ mean   {c['delta_mean']:.6f}",
+        f"  Δβ max    {c['delta_max']:.6f}",
+        f"  Zeros moved > 1e-3:  {c['zeros_moved_1e3']:,}",
+        f"  Zeros moved > 1e-4:  {c['zeros_moved_1e4']:,}",
+        f"",
+        f"  Criterion: Δβ_mean < 0.001 → eigenstate reached",
+        f"  Verdict   {c['verdict']}",
+        f"{'='*60}",
+    ]
+    return '\n'.join(lines)
+
+
 # ── Entry point ────────────────────────────────────────────────────────────────
 
 def main():
@@ -253,11 +393,24 @@ def main():
                         default=os.path.expanduser('~/.ptolemy/monad_wordnet.bin'))
     parser.add_argument('--json', action='store_true', help='emit JSON only')
     parser.add_argument('--out', metavar='FILE', help='write JSON report to file')
+    parser.add_argument('--compare', metavar='REF',
+                        help='compare β vectors against reference checkpoint (idempotency test)')
     args = parser.parse_args()
 
     if not os.path.isfile(args.checkpoint):
         print(f"error: {args.checkpoint} not found", file=sys.stderr)
         sys.exit(1)
+
+    if args.compare:
+        if not os.path.isfile(args.compare):
+            print(f"error: {args.compare} not found", file=sys.stderr)
+            sys.exit(1)
+        cmp = compare_checkpoints(args.checkpoint, args.compare)
+        if args.json:
+            print(json.dumps(cmp, indent=2))
+        else:
+            print(render_compare(cmp))
+        sys.exit(0 if cmp['converged'] else 1)
 
     result = evaluate(args.checkpoint)
 
@@ -271,7 +424,7 @@ def main():
     else:
         print(render(result))
 
-    sys.exit(0 if result['verdict'] == 'PASS' else 1)
+    sys.exit(0 if result['verdict'] in ('PASS', 'CONVERGED') else 1)
 
 
 if __name__ == '__main__':
