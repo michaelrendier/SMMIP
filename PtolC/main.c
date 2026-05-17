@@ -43,7 +43,7 @@
 
 /* g_color and g_self_ref are defined in monad.c — set here by main() */
 
-#define PTOLEMY_VERSION "1.0.0"
+#define PTOLEMY_VERSION "1.115"
 
 /* ── Checkpoint evaluator ─────────────────────────────────────────────────── */
 

@@ -18,12 +18,12 @@
 #include "filter.h"
 
 /* ── Filetype rule table ──────────────────────────────────────────────────── */
-/*                       ft           max  hex   /    dig  caps  b64 */
+/*                       ft           max  hex   /    dig  caps  b64  vowel */
 static const FTRules FILETYPE_RULES[] = {
-    { NS_FT_PROSE,    24,  0,    0,    0,    0,    16  },
-    { NS_FT_CODE,     40,  0,    0,    1,    1,    0   },
-    { NS_FT_MARKUP,   24,  0,    0,    0,    0,    16  },
-    { NS_FT_DOC,      24,  0,    0,    0,    0,    16  },
+    { NS_FT_PROSE,    24,  0,    0,    0,    0,    16,  1  },
+    { NS_FT_CODE,     40,  0,    0,    1,    1,    0,   0  },
+    { NS_FT_MARKUP,   24,  0,    0,    0,    0,    16,  1  },
+    { NS_FT_DOC,      24,  0,    0,    0,    0,    16,  1  },
 };
 #define N_FT_RULES ((int)(sizeof(FILETYPE_RULES)/sizeof(FILETYPE_RULES[0])))
 
@@ -132,6 +132,16 @@ static int is_base64_chunk(const char *s, size_t len, int min_len)
     return ok * 100 / (int)len >= 95;
 }
 
+static int vowel_count(const char *s)
+{
+    int n = 0;
+    for (; *s; s++) {
+        char c = *s | 0x20;  /* to lower */
+        if (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u') n++;
+    }
+    return n;
+}
+
 static int high_digit_ratio(const char *s, size_t len)
 {
     if (!len) return 0;
@@ -180,6 +190,18 @@ int token_accept(const char *tok, NSFiletype ft)
     if (!r->allow_long_caps && is_long_allcaps(tok, len))   return 0;
     if (r->b64_min_len > 0 && is_base64_chunk(tok, len, r->b64_min_len))
         return 0;
+
+    /* ── Vowel gate (prose/markup/doc) ──────────────────────────────────────── */
+
+    if (r->require_vowel) {
+        int vc = vowel_count(tok);
+        if (vc == 0)                                         return 0;
+        /* Very low vowel ratio in longer tokens: "wlvfe", "schzr", etc. */
+        if ((int)len >= 6 && vc * 100 / (int)len < 15)      return 0;
+    }
+
+    /* Trailing apostrophe fragment: "pins'", "ban'" */
+    if (tok[len - 1] == '\'')                               return 0;
 
     return 1;
 }

@@ -39,6 +39,7 @@ typedef struct {
     int         allow_high_dig; /* allow tokens where >50% chars are digits*/
     int         allow_long_caps;/* allow ALL_CAPS tokens > 6 chars         */
     int         b64_min_len;    /* base64 check threshold (0 = skip check) */
+    int         require_vowel;  /* reject tokens with no a/e/i/o/u        */
 } FTRules;
 
 /**

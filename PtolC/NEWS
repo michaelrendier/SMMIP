@@ -2,6 +2,19 @@ PtolC NEWS — user-visible changes by release
 
 See CHANGELOG.md in the repository root for full detail.
 
+Version 1.115 (2026-05-17)
+  * Vowel filter: token_accept() for prose/markup/doc now rejects any
+    token with no a/e/i/o/u vowels (consonant-only strings like "ydrx",
+    "wlvf", etc.) and any token ending in a trailing apostrophe.
+    Tokens ≥ 6 chars with vowel ratio < 15% are also rejected.
+    This fixes monad_speak() surface output on post-Documents fields.
+  * corpora/english_grammar.txt: 5 000-word seed corpus covering all
+    English function words in natural prose sentences.
+  * make grammar: ingests the grammar seed after make corpus.
+    Correct ingest order: make corpus → make grammar → ptolemy -I <dir>.
+  * fresh_start.sh: fixed sys.argv bug that caused IndexError when
+    extracting stats from the assessment JSON for the README block.
+
 Version 1.114 (2026-05-17)
   * -W <prompt>: Wick-rotated speak mode.  Applies σ → iσ to the Noether
     current: J_wick = β × E² × sin(σ·E).  Selects words by the imaginary

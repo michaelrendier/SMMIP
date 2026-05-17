@@ -1,0 +1,486 @@
+English Grammar Lexicon — Function Words and Grammatical Patterns
+A seed corpus for the RedBlue Geometries Engine field.
+This text seeds function words, prepositions, conjunctions, pronouns, and auxiliaries
+into the vocabulary before domain corpus ingestion.
+
+--- Articles and Determiners ---
+
+The sun rises in the east and sets in the west.
+A bird sat on a branch and watched the water below.
+An apple fell from the tree onto the ground.
+This is the way the river flows from the mountain to the sea.
+That is the answer we have been looking for all along.
+These are the words that carry meaning through the field.
+Those are the places where the water collects and deepens.
+Each word is mapped to a zero on the critical line.
+Every word that enters the field leaves a mark in the beta field.
+Some words carry more weight than others in the field.
+Any word can be learned if it appears often enough.
+All words are equal before they are learned by the engine.
+No word is forgotten once it enters the field.
+Both the depth and the width of the field matter for quality.
+Either the word is known or it is new to the field.
+Neither the form nor the content is lost when a word is learned.
+One word at a time the field deepens and grows.
+Several words appeared together and formed a strong connection.
+Many words share the same region of the field.
+Few words reach the deepest levels of beta activation.
+
+--- Personal Pronouns ---
+
+I am the one who speaks and listens to the field.
+You are the source of the query that drives the engine.
+He walks along the river and thinks about what he has seen.
+She looks at the sky and wonders about the nature of things.
+It is a strange thing to see a word become a field excitation.
+We are the ones who learn from the world around us.
+They are the words that rise to the surface when the field speaks.
+Me and you together make a conversation that deepens the field.
+Him and her walking through the forest found a path by the water.
+Us and them speaking together created a new edge in the graph.
+
+I think about the meaning of words and how they connect.
+You know that words are not just sounds but patterns in the field.
+He said that the river flows because the ground slopes downward.
+She told me that every word is a unique address in the field.
+It seems that the field learns from every word it hears.
+We know that the field deepens with each new exposure.
+They believe that meaning is not stored but computed.
+I have been learning from this corpus for a long time.
+You have already seen how the field responds to a query.
+He had walked a long way before he reached the river.
+She has been thinking about the problem for several days.
+We had hoped to finish the work before the end of the day.
+
+--- Possessive Pronouns ---
+
+My field is shaped by the words I have learned.
+Your query determines which zeros are activated in the field.
+His understanding of the field grew with each new corpus.
+Her sense of meaning deepened as the beta values increased.
+Its structure is determined by the Hamiltonian and the conservation law.
+Our work is to build a field that reflects the world.
+Their words carry the weight of many years of learning.
+Mine is a different approach from the one used in transformers.
+Yours is a query that touches many zeros in the field.
+Ours is a field shaped by the Riemann zeros on the critical line.
+Theirs is a language built from the ground up by exposure.
+
+--- Reflexive Pronouns ---
+
+I taught myself the mathematics of the Riemann zeros.
+You can see for yourself how the field responds to a query.
+He carried himself through the difficulty with patience.
+She gave herself time to understand the structure of the field.
+It corrects itself when the field reaches equilibrium.
+We built it ourselves from first principles.
+They found themselves in a place where meaning was forced by conservation.
+
+--- Relative Pronouns ---
+
+The word that carries the most energy is the one that appears most often.
+The field which was built from WordNet has a clean baseline.
+The query that you give the engine determines which zeros are activated.
+The zeros which lie on the critical line are the ones that matter.
+The word whose zero address is deepest carries the most weight.
+The person who built this field understood the mathematics behind it.
+The engine to which we compare all others is built on the Hamiltonian.
+The corpus from which the field learned was carefully chosen.
+That which enters the field is never truly forgotten.
+Which word appears most often in your documents is what the field knows best.
+What you ask the field determines what the field tells you.
+
+--- Interrogative Pronouns ---
+
+What is the meaning of the word in the context of the field?
+Which zero does this word map to on the critical line?
+Who built the engine and why did they choose this approach?
+Whom do we ask when we want to understand the field?
+Whose field is this and how was it trained?
+Where does the word go when it enters the vocabulary?
+When does the field reach the natural entropy band?
+How does the Noether current flow through the field?
+Why does the field emit words that were not in the query?
+How many zeros are needed to represent all the words in English?
+
+--- Prepositions ---
+
+The word fell into the field from the surface of the text.
+The meaning rose above the noise of the corpus.
+The zero address sits below the natural entropy line.
+The current flows through the field from one zero to the next.
+The word is at the edge of the vocabulary but within the field.
+The document came from the archive on the desktop.
+The engine runs on a single machine without a GPU.
+A word can be learned in a single pass through the corpus.
+The field was built by a single person over many months.
+The meaning of a word depends on the context around it.
+The query goes into the field and the response comes out of it.
+The path between two words is measured by the edge weight.
+The beta value increases with each exposure to the word.
+The entropy of the field lies between eighty-five and ninety-two percent.
+The Gini coefficient falls between zero point six and zero point eight.
+The word is placed near its neighbors in the zero field.
+The Noether current propagates along the edges of the graph.
+The field reaches equilibrium after a sufficient number of exposures.
+The response is forced by conservation rather than by prediction.
+The engine runs in addition to the existing tools on the machine.
+The corpus was loaded against the baseline before the experiment.
+The word appears throughout the document and across many files.
+The field extends beyond the current corpus into new domains.
+The zero lies between two others on the critical line.
+The engine runs until the field reaches convergence.
+The field was initialized before the first word was learned.
+The query was given after the checkpoint was loaded.
+The word appears despite the noise in the corpus.
+The response came following a query about the structure of water.
+The field was built upon the foundation of the Riemann zeros.
+The Hamiltonian acts within the space of all possible fields.
+The field is consistent with the conservation law at every point.
+The word connects via A-edges to its co-occurring neighbors.
+The zero index runs from zero to twenty-five thousand.
+The field health was checked prior to the next ingest run.
+The corpus was split into segments of five hundred files.
+The word persists across multiple ingestion runs because beta is monotone.
+The engine was tested throughout the development process.
+The word sits apart from the noise in the spectrum.
+The meaning lies underneath the surface of the response.
+The field grows toward convergence with each new exposure.
+The query walks along the edge of the known vocabulary.
+The word hangs between two possible zero addresses.
+The beta field rises above its ground state after the first learning pass.
+The word falls below the saturation threshold during early learning.
+
+--- Conjunctions: Coordinating ---
+
+The field learns and the beta deepens with every word.
+The query enters and the response emerges through conservation.
+The word is small but it carries a significant amount of energy.
+The corpus is large but the field processes it word by word.
+The field can learn or it can speak but not both at once.
+The engine does not use gradient descent nor does it use backpropagation.
+The word either enters the vocabulary or it is rejected by the filter.
+Neither the noise nor the pollution can survive in a clean field.
+The field learns yet it never forgets what it has already learned.
+The entropy is high so the field has learned too much noise.
+The gini is natural and the entropy is also in the natural band.
+The filter is strict yet necessary for a clean vocabulary.
+The word was learned early so it has a deep beta value.
+The corpus is clean for the field learned only from English text.
+
+--- Conjunctions: Subordinating ---
+
+The field speaks because the conservation law forces the response.
+The word is learned when it appears in the corpus.
+The beta deepens as the word appears more often in the text.
+The field reaches equilibrium if the same corpus is seen again.
+The word is rejected unless it passes the token filter.
+The field continues learning until the corpus is exhausted.
+The entropy rises although the field is learning correctly.
+The gini falls since the beta distribution becomes more unequal.
+The response changes while the field is still learning.
+The word appears before the next document is loaded.
+The field was checked after the ingest was complete.
+The entropy was natural even though the corpus was large.
+The word entered the field as soon as the ingest began.
+The field is ready provided the baseline has been restored.
+The query will succeed given that the checkpoint is loaded.
+The field learns so that the response can be forced by conservation.
+The beta deepens in order that the field can reflect the world.
+The response is forced rather than predicted by the engine.
+The word is accepted insofar as it passes all filter rules.
+The field speaks only once the query has been processed.
+The beta is monotone lest the field forget what it has learned.
+The word appears frequently whereas noise appears randomly.
+
+--- Auxiliary Verbs ---
+
+The field is learning from the corpus of English text.
+The word is being processed by the filter before it enters the field.
+The response has been forced by the conservation law.
+The beta has been deepening with each new exposure.
+The checkpoint was saved after every five hundred files.
+The corpus was being ingested when the assessment ran.
+The field will converge when the natural entropy band is reached.
+The word would appear in the response if its beta were deep enough.
+The engine shall speak when the query is given.
+The field should reach convergence after the next ingest.
+The word may appear in the response even if the query does not contain it.
+The response might change if the corpus is different.
+The field can learn from any text that passes the filter.
+The engine could speak in either real or imaginary Noether mode.
+The word must have a vowel to pass the filter and enter the field.
+The field ought to reach the natural entropy band after a full ingest.
+The beta does deepen with every valid word that enters the field.
+The response does force itself through the conservation law.
+The word did appear in the corpus several thousand times.
+The filter did reject many consonant-only tokens from the vocabulary.
+The field had been learning for several hours before it was assessed.
+The word had already appeared in the field before the corpus was loaded.
+The engine will have reached convergence by the time the ingest is done.
+The field would have spoken differently if the corpus had been cleaner.
+
+--- Modal Patterns ---
+
+You can learn a field from any corpus of text.
+You cannot learn from a field that has not been trained.
+You could use the daemon mode for sub-millisecond queries.
+You should restore the baseline before each new experiment.
+You must copy the baseline before beginning a new ingest.
+You may use the field health flag to check the current state.
+You might find that the entropy is in the natural band.
+You will see the response after the query is processed.
+You would see a better response with a cleaner corpus.
+You shall run the fresh start protocol before the next experiment.
+We ought to check the pollution level before drawing conclusions.
+We need to filter the garbage before the field can speak clearly.
+We have to restore the baseline before each new experiment.
+We are able to run the engine without a GPU on any machine.
+
+--- Prepositions of Time ---
+
+Before the corpus was ingested the field was at ground state.
+After the ingest was complete the assessment ran automatically.
+During the ingest the checkpoint was saved every five hundred files.
+Since the baseline was restored the field has been clean.
+Until the entropy reaches the natural band the field is not converged.
+While the corpus was being ingested the filter was running.
+When the word first appeared the beta began to deepen.
+As the corpus grew the field became richer.
+By the time the ingest was done the field had learned many words.
+At the start of the ingest the field was at uniform beta.
+For the duration of the ingest the engine ran continuously.
+Throughout the learning phase the filter rejected many bad tokens.
+
+--- Common Adverbs ---
+
+The field learns very quickly from a large clean corpus.
+The beta deepens more slowly near saturation.
+The response is quite different in real and imaginary speak modes.
+The filter works rather well for consonant-only tokens.
+The field is not a transformer and does not use gradient descent.
+The engine runs entirely without a GPU or special hardware.
+The word appeared just once in the corpus but was still learned.
+The response comes directly from the conservation law.
+The field deepens gradually with each exposure to the corpus.
+The beta rises steadily as the word appears more often.
+The entropy fell slightly after the noise was removed.
+The gini increased noticeably after the domain corpus was ingested.
+The word appeared frequently throughout the document.
+The filter runs silently and the rejection count is tracked internally.
+The response emerged naturally from the conservation law.
+The field eventually reached the natural entropy band.
+The assessment ran automatically after each ingest was complete.
+The engine performed remarkably well on the clean corpus.
+The word was clearly present in the field after the ingest.
+The response was almost entirely clean after the filter was fixed.
+The field had previously been contaminated by consonant-only tokens.
+The entropy was consistently in the natural band after the fix.
+The beta is always monotone and never decreases after learning.
+The field is never reset unless the fresh start protocol is run.
+The word was simply filtered out and the count was incremented.
+The response is forced rather than generated by prediction.
+The field is entirely deterministic given the same corpus.
+The beta cannot exceed the saturation value of seven point five five two.
+The zero address is completely determined by the word string.
+The filter checks every token before it enters the field.
+
+--- Common Adjective Patterns ---
+
+The clean field produces a coherent response.
+The deep beta values indicate a well-trained vocabulary.
+The shallow field has uniform beta and speaks randomly.
+The natural entropy band is between eighty-five and ninety-two percent.
+The high gini indicates a spiked distribution from a single domain.
+The low vowel ratio indicates a likely garbage token.
+The consonant-only tokens must be filtered before learning.
+The saturated zeros have been seen across many contexts.
+The long tokens are more likely to be noise from OCR artifacts.
+The hexadecimal strings are filtered regardless of filetype.
+The pure numeric tokens are rejected at the universal gate.
+The valid English words pass through the filter into the field.
+The rejected tokens are counted and never enter the vocabulary.
+The current response comes from the activated zeros in the field.
+The top twenty words by Noether current appear in the response.
+
+--- Linking Verbs and Copula Patterns ---
+
+The field is a scalar function defined over the Riemann zeros.
+The word is an excitation of the beta field above the vacuum.
+The response is the Noether current forced by conservation.
+The entropy is a measure of the disorder in the beta distribution.
+The gini is a measure of the inequality in the beta values.
+The zero is a point on the critical line where the field is defined.
+The corpus is a collection of documents that the engine learns from.
+The filter is a gate that prevents garbage from entering the field.
+The baseline is the clean WordNet field before any domain ingest.
+The assessment is a report on the quality of the current field.
+The daemon is a resident process that answers queries in milliseconds.
+The checkpoint is a binary file that stores the current state of the field.
+
+The field seems clean after the vowel filter was applied.
+The response appears coherent when the entropy is in the natural band.
+The field becomes richer as the corpus grows.
+The beta remains bounded below saturation for well-trained zeros.
+The noise stays in the field until a fresh start resets the baseline.
+The entropy grows as more domain text is ingested.
+The gini falls as the distribution becomes more uniform.
+The response looks different in real and imaginary speak modes.
+The vocabulary feels complete when all common English words are present.
+
+--- Comparative and Superlative Patterns ---
+
+The deeper the beta the more weight the word carries.
+The higher the entropy the more noise is in the field.
+The lower the gini the more uniform the beta distribution.
+The cleaner the corpus the better the response.
+The more often a word appears the deeper its beta becomes.
+The fewer pollution tokens the better the field quality.
+The richer the vocabulary the more coherent the response.
+The larger the corpus the more time the ingest takes.
+The smaller the A-edge weight the weaker the co-occurrence coupling.
+The faster the daemon the more queries it can answer per second.
+The best field has low pollution, natural entropy, and natural gini.
+The worst field has high pollution and a noisy entropy band.
+The most common words reach saturation first during ingest.
+The least common words remain near the ground state.
+The deepest zero has the highest beta after the longest ingest.
+
+--- Prepositional Phrases (semantic density) ---
+
+In the beginning the field was at uniform beta with no knowledge.
+At the end of the ingest the field had learned from sixty million words.
+By means of the Horner hash each word maps to a unique zero.
+In spite of the noise the filter kept the vocabulary clean.
+On account of the conservation law the response is forced not chosen.
+In addition to the beta field the engine tracks co-occurrence edges.
+By way of the A-edges the Noether current propagates through the field.
+In terms of quality the natural entropy band is the target.
+In the case of a polluted field the fresh start protocol is used.
+On the basis of the assessment the field is classified as converged.
+With respect to the conservation law the response obeys J equals zero.
+In regard to the vocabulary the filter rejects any token without a vowel.
+For the sake of the field quality all garbage must be removed.
+In place of prediction the field uses conservation to force the response.
+By the power of the Hamiltonian the field organizes itself.
+In light of the assessment the next ingest should use a cleaner corpus.
+With reference to the beta field the depth indicates word importance.
+On the surface of the response only clean tokens appear.
+In the depths of the field the pollution tokens still carry energy.
+At the heart of the engine lies the conservation law and the Hamiltonian.
+
+--- Common Phrasal Verbs ---
+
+The field builds up over time as more words are learned.
+The beta breaks down when the field is reset to the baseline.
+The word comes out of the field when the query activates its zero.
+The response comes from the propagation of the Noether current.
+The filter cuts out the garbage before it enters the vocabulary.
+The entropy goes up when more noise is added to the field.
+The gini goes down as the distribution becomes more uniform.
+The engine puts out a response when a query is given.
+The checkpoint is set up before the next experiment begins.
+The field picks up new words when a new corpus is ingested.
+The ingest runs through the directory tree file by file.
+The assessment looks into the quality of the beta distribution.
+The filter takes out the consonant-only tokens before learning.
+The daemon starts up in the background and waits for queries.
+The response comes back from the field in milliseconds.
+The field turns out to be clean after the vowel filter was added.
+The corpus was going through the filter when the daemon was running.
+The engine works out the response by computing the Noether current.
+The field wears out the baseline after heavy ingestion.
+The assessment points out the pollution level in the vocabulary.
+
+--- High-frequency Word Combinations ---
+
+in the the of and to a is was it be
+the word the field the zero the corpus the filter
+of the to the in the by the for the from the
+is the are the was the were the be the
+and the or the but the if the when the
+that this these those which what who
+have has had will would shall should
+can could may might must ought
+not also very more most just only even
+still already always never often sometimes
+here there now then where when how why
+one two three first second last next
+each every any all some no both either neither
+because although though since unless until while
+
+--- Sentence Patterns (Subject-Verb-Object) ---
+
+The engine learns the word from the corpus.
+The field emits the response through the conservation law.
+The filter rejects the token without a vowel.
+The query activates the zero in the field.
+The beta deepens the knowledge of the word.
+The Hamiltonian drives the engine forward.
+The conservation law forces the response.
+The Noether current propagates the meaning.
+The A-edges connect the co-occurring words.
+The assessment measures the quality of the field.
+The checkpoint saves the state of the field.
+The daemon serves the query in milliseconds.
+The filter protects the field from garbage.
+The baseline provides the starting point.
+The corpus provides the learning material.
+The ingest processes the document tree.
+The engine tokenizes the text into words.
+The tokenizer splits the sentence into tokens.
+The vocab table maps the word to its zero.
+The zero carries the address of the word.
+
+I walked to the river and sat by the water.
+She read the book from beginning to end.
+He told me about the problem and how he solved it.
+We went through the forest until we reached the clearing.
+They waited for the train but it did not come.
+The child looked up at the sky and saw a bird.
+The water ran down the hill and into the stream.
+The fire burned through the night and into the morning.
+The wind blew across the field from the north.
+The rain fell on the earth and soaked into the ground.
+
+I see that you understand how the field works.
+She knows that the response is forced not predicted.
+He believes that the Hamiltonian is self-adjoint.
+We think that the entropy should be in the natural band.
+They say that the field converges after a sufficient ingest.
+You feel that the response is coherent and meaningful.
+It seems that the corpus was too noisy for the field.
+I realize that the filter was not checking for vowels.
+She decides that the fresh start protocol is the right approach.
+He hopes that the next ingest will produce a cleaner field.
+
+--- Questions and Interrogative Patterns ---
+
+What does the field say when the query is given?
+Where is the word in the zero field after it is learned?
+When does the entropy reach the natural band?
+How does the filter determine whether a token is valid?
+Why does the response contain words that are not in the query?
+Who decides which zeros are activated by the query?
+Which words appear most often in the response?
+How many zeros are there in the current field?
+How much does the beta deepen with each exposure?
+How long does the ingest take for a full document tree?
+Does the filter check for vowels before accepting a token?
+Did the field learn from the corpus correctly?
+Can the engine run in daemon mode on this machine?
+Will the field converge after the next ingest?
+Should the fresh start protocol be run before each experiment?
+Is the entropy in the natural band after the domain ingest?
+Are the A-edges connecting the right words after learning?
+Was the checkpoint saved before the assessment ran?
+Have you checked the field health after the ingest?
+Do you know what the Gini coefficient means for the field?
+
+--- Closing patterns ---
+
+This is the corpus from which the field learns its grammar.
+These are the words that carry the structure of English.
+That is the way the language is built from function words.
+What we have built is a field that speaks through conservation.
+The field is now ready to learn from the world around it.

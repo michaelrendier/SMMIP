@@ -18,7 +18,7 @@ OBJS    = $(SRCS:.c=.o)
 PREFIX     ?= /usr/local
 MANDIR     ?= $(PREFIX)/share/man
 
-.PHONY: all clean export corpus full expand ingest install install-man install-systemd
+.PHONY: all clean export corpus grammar full expand ingest install install-man install-systemd
 
 all: $(TARGET)
 
@@ -32,6 +32,14 @@ corpus: $(TARGET)
 	@echo "[corpus] extracting lemmas + definitions (313K lines)…"
 	@python3 tools/dump_wordnet.py | ./$(TARGET) -i -l -
 	@echo "[corpus] done → monad_wordnet.bin"
+
+# ── Grammar: ingest function-word lexicon after corpus ──────────────────────
+# Ingest order: make corpus → make grammar → ptolemy -I ~/Documents
+# Usage: make grammar
+grammar: $(TARGET)
+	@echo "[grammar] ingesting English function-word lexicon…"
+	@./$(TARGET) -l corpora/english_grammar.txt
+	@echo "[grammar] done — vocabulary seeded with grammatical structure"
 
 # ── Full: binary + corpus in one step ───────────────────────────────────────
 full: $(TARGET) corpus

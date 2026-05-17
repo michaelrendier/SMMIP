@@ -4,6 +4,41 @@ All releases are preserved. Version format: v1.NNN — single increment per rele
 
 ---
 
+## v1.115 — 2026-05-17
+
+**PtolC — Vowel filter; grammar corpus; fresh_start.sh fix**
+
+### Binary
+
+- `filter.c` — `require_vowel` field added to `FTRules`; set to 1 for
+  NS_FT_PROSE, NS_FT_MARKUP, NS_FT_DOC; 0 for NS_FT_CODE.
+  `vowel_count()` helper counts a/e/i/o/u. `token_accept()` now rejects:
+  - Any prose/markup/doc token with no vowels (consonant-only strings:
+    "ydrx", "wlvf", "nnwq", etc.)
+  - Any prose/markup/doc token ≥ 6 chars with vowel ratio < 15%
+  - Any token ending in `'` (trailing-apostrophe fragments: "pins'", "ban'")
+- Surface filter in `monad_speak()` and `monad_speak_wick()` inherits the
+  fix automatically (both call `token_accept(w, NS_FT_PROSE)`).
+- `corpora/english_grammar.txt` — 5 000-word seed corpus: all English
+  function words (determiners, pronouns, prepositions, conjunctions,
+  auxiliaries, adverbs) in natural prose sentences. Establishes A-edges
+  between grammatically co-occurring words before domain ingest.
+- `make grammar` — new Makefile target ingests the grammar seed. Correct
+  ingest order: `make corpus` → `make grammar` → `ptolemy -I ~/Documents`.
+
+### Tools
+
+- `tools/fresh_start.sh` — fixed `sys.argv[1]` bug: Python inline script
+  was receiving no arguments because the JSON path was placed after the
+  heredoc PYEOF terminator instead of before the heredoc marker. Now uses
+  `python3 - "${ASSESSMENT_JSON}" <<'PYEOF'` form.
+
+### Python
+
+- No change from v2.1.0.
+
+---
+
 ## v1.114 — 2026-05-17
 
 **PtolC — Wick-rotated speak(); imaginary Noether current**
