@@ -1,0 +1,259 @@
+{
+  "timestamp": "2026-05-17T00:07:24.555086+00:00",
+  "path": "/home/rendier/.ptolemy/monad_English.bin",
+  "size_bytes": 12853068,
+  "size_mb": 12.26,
+  "version": 2,
+  "N": 25000,
+  "vocab_size": 14164,
+  "A_size": 766027,
+  "word_count": 1608903,
+  "threshold": 3.776,
+  "entropy_H": 11.0993,
+  "entropy_H_max": 13.7899,
+  "entropy_pct": 80.5,
+  "beta_dist": {
+    "sat": 99,
+    "low": 13845,
+    "ground": 10836,
+    "mid": 143,
+    "high": 77
+  },
+  "clean_count": 13654,
+  "polluted_count": 510,
+  "pollution_pct": 3.6,
+  "pollution_by_category": {
+    "consonant-cluster-3": 175,
+    "consonant-only": 249,
+    "no-vowel": 78,
+    "trailing-apostrophe": 133,
+    "apostrophe-fragment": 96,
+    "low-vowel-ratio": 2,
+    "hex-string": 32
+  },
+  "top_beta": [
+    {
+      "word": "philadelphos",
+      "beta": 7.552,
+      "E": 0.246,
+      "labels": []
+    },
+    {
+      "word": "the",
+      "beta": 7.552,
+      "E": 0.2568,
+      "labels": []
+    },
+    {
+      "word": "is",
+      "beta": 7.552,
+      "E": 0.2703,
+      "labels": []
+    },
+    {
+      "word": "family",
+      "beta": 7.552,
+      "E": 0.2789,
+      "labels": []
+    },
+    {
+      "word": "agelong",
+      "beta": 7.552,
+      "E": 0.2861,
+      "labels": []
+    },
+    {
+      "word": "finding",
+      "beta": 7.552,
+      "E": 0.2912,
+      "labels": []
+    },
+    {
+      "word": "used",
+      "beta": 7.552,
+      "E": 0.2955,
+      "labels": []
+    },
+    {
+      "word": "into",
+      "beta": 7.552,
+      "E": 0.3019,
+      "labels": []
+    },
+    {
+      "word": "alleged",
+      "beta": 7.552,
+      "E": 0.3213,
+      "labels": []
+    },
+    {
+      "word": "euler's",
+      "beta": 7.552,
+      "E": 0.3263,
+      "labels": []
+    },
+    {
+      "word": "cover",
+      "beta": 7.552,
+      "E": 0.3311,
+      "labels": []
+    },
+    {
+      "word": "trills",
+      "beta": 7.552,
+      "E": 0.3359,
+      "labels": []
+    },
+    {
+      "word": "english",
+      "beta": 7.552,
+      "E": 0.3363,
+      "labels": []
+    },
+    {
+      "word": "any",
+      "beta": 7.552,
+      "E": 0.3409,
+      "labels": []
+    },
+    {
+      "word": "seventy",
+      "beta": 7.552,
+      "E": 0.3413,
+      "labels": []
+    },
+    {
+      "word": "states",
+      "beta": 7.552,
+      "E": 0.3438,
+      "labels": []
+    },
+    {
+      "word": "social",
+      "beta": 7.552,
+      "E": 0.3451,
+      "labels": []
+    },
+    {
+      "word": "and",
+      "beta": 7.552,
+      "E": 0.3477,
+      "labels": []
+    },
+    {
+      "word": "his",
+      "beta": 7.552,
+      "E": 0.3483,
+      "labels": []
+    },
+    {
+      "word": "of",
+      "beta": 7.552,
+      "E": 0.349,
+      "labels": []
+    }
+  ],
+  "top_edges": [
+    {
+      "word_i": "of",
+      "word_j": "undo'",
+      "weight": 80.748
+    },
+    {
+      "word_i": "and",
+      "word_j": "of",
+      "weight": 35.5159
+    },
+    {
+      "word_i": "trash",
+      "word_j": "holcus",
+      "weight": 18.6587
+    },
+    {
+      "word_i": "philadelphos",
+      "word_j": "the",
+      "weight": 10.0351
+    },
+    {
+      "word_i": "who",
+      "word_j": "airless",
+      "weight": 9.334
+    },
+    {
+      "word_i": "out",
+      "word_j": "when",
+      "weight": 8.0867
+    },
+    {
+      "word_i": "manner",
+      "word_j": "holcus",
+      "weight": 7.3217
+    },
+    {
+      "word_i": "malady",
+      "word_j": "holcus",
+      "weight": 6.5531
+    },
+    {
+      "word_i": "holcus",
+      "word_j": "at",
+      "weight": 5.9706
+    },
+    {
+      "word_i": "rash",
+      "word_j": "and",
+      "weight": 4.6842
+    },
+    {
+      "word_i": "holcus",
+      "word_j": "common",
+      "weight": 4.529
+    },
+    {
+      "word_i": "or",
+      "word_j": "can",
+      "weight": 4.4324
+    },
+    {
+      "word_i": "strict",
+      "word_j": "of",
+      "weight": 4.3082
+    },
+    {
+      "word_i": "malady",
+      "word_j": "myriad",
+      "weight": 4.2482
+    },
+    {
+      "word_i": "abiding",
+      "word_j": "holcus",
+      "weight": 4.0717
+    },
+    {
+      "word_i": "pinnate",
+      "word_j": "or",
+      "weight": 4.033
+    },
+    {
+      "word_i": "his",
+      "word_j": "of",
+      "weight": 3.9277
+    },
+    {
+      "word_i": "sacred",
+      "word_j": "sensory",
+      "weight": 3.8279
+    },
+    {
+      "word_i": "philadelphos",
+      "word_j": "fluid",
+      "weight": 2.8326
+    },
+    {
+      "word_i": "and",
+      "word_j": "his",
+      "weight": 2.4508
+    }
+  ],
+  "verdict": "PASS"
+}

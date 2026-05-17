@@ -40,3 +40,29 @@ Run `tools/eval_checkpoint.py <file.bin>` to generate a new assessment.
 - See `PtolC/TODO` for remediation items
 
 **Top A-edge anomaly:** `ban' — each` (w=3087) — "ban" appears with trailing apostrophe throughout the KJV sacred texts corpus, creating a dominant polluted A-edge. The underlying concept (prohibition) is correctly addressed; only the surface form is polluted.
+
+---
+
+## monad_English — 2026-05-17
+
+**Release:** [v1.113](https://github.com/michaelrendier/SMMIP/releases/tag/v1.113)  
+**Assessment:** [monad_English_baseline.assessment.json](monad_English_baseline.assessment.json)  
+**Label:** BASELINE — pure WordNet 3.1, ground state start, no corpus pollution
+
+| Metric | Value |
+|--------|-------|
+| Size | 12.26 MB |
+| Vocab | 14,164 |
+| A-edges | 766,027 |
+| Words ingested | 1,608,903 |
+| Entropy | 11.10 / 13.79 bits (80.5%) |
+| Clean tokens | 13,654 (96.4%) |
+| Polluted tokens | 510 (3.6%) |
+| Verdict | **PASS** |
+| Deepest word | **philadelphos** (zero #0, γ=14.1347) |
+
+**Corpus:** WordNet 3.1 only — definitions and lemmas via NLTK  
+**Residual pollution (3.6%):** inherent to WordNet definitions — abbreviations,
+Latin terms, botanical codes. Not from filesystem ingest.  
+**Use:** copy to `monad_wordnet.bin` before each experimental ingest run.
+Copy command: `cp ~/.ptolemy/monad_English.bin ~/.ptolemy/monad_wordnet.bin`
